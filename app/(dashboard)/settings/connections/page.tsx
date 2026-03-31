@@ -12,7 +12,7 @@ export default async function ConnectionsPage({
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  // if (!user) redirect('/login') — auth disabled
 
   const { data: brands } = await supabase.from('brands').select('id, name').eq('user_id', user.id).limit(1)
   const brand = brands?.[0]

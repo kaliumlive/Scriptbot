@@ -8,7 +8,7 @@ export default async function AnalyticsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  // if (!user) redirect('/login') — auth disabled
 
   // Fetch real analytics snapshots
   const { data: analytics } = await supabase

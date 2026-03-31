@@ -9,7 +9,7 @@ export default async function RepurposePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  // if (!user) redirect('/login') — auth disabled
 
   // Fetch recent drafts
   const { data: drafts } = await supabase

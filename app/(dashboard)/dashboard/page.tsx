@@ -18,7 +18,7 @@ const AGENTS = [
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  // if (!user) redirect('/login') — auth disabled
 
   const { data: brands } = await supabase.from('brands').select('id, name, handle').eq('user_id', user.id)
   const brandIds = brands?.map((b: { id: string }) => b.id) ?? []

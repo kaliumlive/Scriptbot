@@ -14,7 +14,7 @@ export default async function BrandDetailPage({
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  // if (!user) redirect('/login') — auth disabled
 
   const { data: brand } = await supabase
     .from('brands')

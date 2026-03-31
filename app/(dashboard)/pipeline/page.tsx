@@ -8,7 +8,7 @@ export default async function PipelinePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  // if (!user) redirect('/login') — auth disabled
 
   const { data: brands } = await supabase
     .from('brands')
