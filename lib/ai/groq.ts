@@ -1,6 +1,10 @@
 import Groq from 'groq-sdk'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
+let _groq: Groq | null = null
+function getGroq(): Groq {
+  if (!_groq) _groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
+  return _groq
+}
 
 export async function generateWithGroq(
   prompt: string,
@@ -11,6 +15,6 @@ export async function generateWithGroq(
   if (systemPrompt) messages.push({ role: 'system', content: systemPrompt })
   messages.push({ role: 'user', content: prompt })
 
-  const completion = await groq.chat.completions.create({ messages, model, temperature: 0.7, max_tokens: 4096 })
+  const completion = await getGroq().chat.completions.create({ messages, model, temperature: 0.7, max_tokens: 4096 })
   return completion.choices[0]?.message?.content ?? ''
 }
