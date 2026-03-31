@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 /**
  * One-time seed endpoint — creates the kalium.wav brand + voice profile
  * from the Hippocratic gate intake done in chat.

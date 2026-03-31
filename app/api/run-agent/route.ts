@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 /**
  * UI-facing agent trigger endpoint.
  * Authenticated via Supabase session (not x-agent-secret).

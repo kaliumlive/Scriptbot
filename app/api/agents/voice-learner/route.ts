@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { validateAgentRequest, agentUnauthorized } from '@/lib/utils/agent-guard'
 import { runVoiceLearner } from '@/lib/agents/voice-learner'
