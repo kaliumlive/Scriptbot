@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1080px; display: flex; align-items: center; justify-content: center; background: {{background_color}}; font-family: 'Arial', sans-serif; }
+  .slide { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px; position: relative; }
+  .slide-number { position: absolute; top: 40px; right: 40px; font-size: 24px; color: {{text_color}}; opacity: 0.5; }
+  .title { font-size: {{title_font_size}}px; font-weight: 800; color: {{text_color}}; text-align: center; line-height: 1.2; margin-bottom: 40px; }
+  .body { font-size: 36px; color: {{body_color}}; text-align: center; line-height: 1.6; }
+  .brand { position: absolute; bottom: 40px; font-size: 28px; color: {{text_color}}; opacity: 0.7; }
+</style>
+</head>
+<body>
+  <div class="slide">
+    <div class="slide-number">{{slide_number}}/{{total_slides}}</div>
+    <div class="title">{{title}}</div>
+    <div class="body">{{body}}</div>
+    <div class="brand">{{brand_handle}}</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,79 @@
+name: Agent Scheduler
+on:
+  schedule:
+    - cron: '0 * * * *'      # Hourly: Publisher
+    - cron: '0 */4 * * *'    # Every 4h: Trend Scout
+    - cron: '0 6 * * *'      # Daily 6AM UTC: Idea Generator
+    - cron: '0 8 * * *'      # Daily 8AM UTC: Content Writer + Scheduler
+    - cron: '0 2 * * 0'      # Weekly Sunday 2AM UTC: Analytics
+  workflow_dispatch:
+    inputs:
+      agent:
+        description: 'Specific agent to trigger (optional)'
+        required: false
+        default: 'all'
+
+jobs:
+  trigger-publisher:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Publisher Agent
+        run: |
+          curl -X POST "${{ secrets.APP_URL }}/api/agents/publisher" \
+            -H "x-agent-secret: ${{ secrets.AGENT_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 50
+
+  trigger-trend-scout:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule')
+    steps:
+      - name: Trigger Trend Scout Agent
+        run: |
+          HOUR=$(date -u +%H)
+          if [ $((HOUR % 4)) -eq 0 ]; then
+            curl -X POST "${{ secrets.APP_URL }}/api/agents/trend-scout" \
+              -H "x-agent-secret: ${{ secrets.AGENT_SECRET }}" \
+              -H "Content-Type: application/json" \
+              --max-time 50
+          fi
+
+  trigger-daily-agents:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Idea Generator (6AM)
+        run: |
+          HOUR=$(date -u +%H)
+          if [ "$HOUR" = "06" ]; then
+            curl -X POST "${{ secrets.APP_URL }}/api/agents/idea-generator" \
+              -H "x-agent-secret: ${{ secrets.AGENT_SECRET }}" \
+              -H "Content-Type: application/json" \
+              --max-time 50
+          fi
+      - name: Trigger Content Writer (8AM)
+        run: |
+          HOUR=$(date -u +%H)
+          if [ "$HOUR" = "08" ]; then
+            curl -X POST "${{ secrets.APP_URL }}/api/agents/content-writer" \
+              -H "x-agent-secret: ${{ secrets.AGENT_SECRET }}" \
+              -H "Content-Type: application/json" \
+              --max-time 50
+            curl -X POST "${{ secrets.APP_URL }}/api/agents/scheduler" \
+              -H "x-agent-secret: ${{ secrets.AGENT_SECRET }}" \
+              -H "Content-Type: application/json" \
+              --max-time 50
+          fi
+
+  trigger-analytics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Analytics (Sunday 2AM)
+        run: |
+          DAY=$(date -u +%u)
+          HOUR=$(date -u +%H)
+          if [ "$DAY" = "7" ] && [ "$HOUR" = "02" ]; then
+            curl -X POST "${{ secrets.APP_URL }}/api/agents/analytics" \
+              -H "x-agent-secret: ${{ secrets.AGENT_SECRET }}" \
+              -H "Content-Type: application/json" \
+              --max-time 50
+          fi
