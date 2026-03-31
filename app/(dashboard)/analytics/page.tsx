@@ -5,10 +5,7 @@ import RunAnalyticsButton from '@/components/analytics/RunAnalyticsButton'
 
 export default async function AnalyticsPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  // if (!user) redirect('/login') — auth disabled
+  // Auth disabled
 
   // Fetch real analytics snapshots
   const { data: analytics } = await supabase

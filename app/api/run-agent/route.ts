@@ -32,12 +32,7 @@ const AGENT_RUNNERS = {
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+  // Auth disabled — allow all requests
   const body = await request.json().catch(() => ({}))
   const { agent, brandId, ...extra } = body as {
     agent: keyof typeof AGENT_RUNNERS
@@ -53,12 +48,11 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'brandId is required' }, { status: 400 })
   }
 
-  // Verify the brand belongs to this user
+  // Verify brand exists
   const { data: brand } = await supabase
     .from('brands')
     .select('id')
     .eq('id', brandId)
-    .eq('user_id', user.id)
     .single()
 
   if (!brand) {

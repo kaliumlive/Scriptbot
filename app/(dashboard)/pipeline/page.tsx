@@ -5,15 +5,10 @@ import KanbanBoard from '@/components/pipeline/KanbanBoard'
 
 export default async function PipelinePage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  // if (!user) redirect('/login') — auth disabled
-
+  // Auth disabled — fetch all brands
   const { data: brands } = await supabase
     .from('brands')
     .select('id, name, handle')
-    .eq('user_id', user.id)
     .limit(1)
   const brand = brands?.[0]
 

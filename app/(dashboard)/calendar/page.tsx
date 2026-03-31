@@ -4,15 +4,10 @@ import { Calendar, Clock } from 'lucide-react'
 
 export default async function CalendarPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  // if (!user) redirect('/login') — auth disabled
-
+  // Auth disabled — fetch all brands
   const { data: brands } = await supabase
     .from('brands')
     .select('id')
-    .eq('user_id', user.id)
   const brandIds = brands?.map((b: { id: string }) => b.id) ?? []
 
   const { data: scheduled } = brandIds.length > 0

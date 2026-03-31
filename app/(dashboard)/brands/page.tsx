@@ -6,15 +6,10 @@ import SeedBrandButton from '@/components/brands/SeedBrandButton'
 
 export default async function BrandsPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  // if (!user) redirect('/login') — auth disabled
-
+  // Auth disabled — fetch all brands
   const { data: brands } = await supabase
     .from('brands')
     .select('*, brand_voice_profiles(id)')
-    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
   return (

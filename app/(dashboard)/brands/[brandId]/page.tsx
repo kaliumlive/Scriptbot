@@ -11,16 +11,11 @@ export default async function BrandDetailPage({
 }) {
   const { brandId } = await params
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  // if (!user) redirect('/login') — auth disabled
-
+  // Auth disabled — fetch brand by id only
   const { data: brand } = await supabase
     .from('brands')
     .select('*, brand_voice_profiles(*)')
     .eq('id', brandId)
-    .eq('user_id', user.id)
     .single()
 
   if (!brand) notFound()

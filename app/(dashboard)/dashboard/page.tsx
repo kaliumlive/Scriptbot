@@ -17,10 +17,8 @@ const AGENTS = [
 
 export default async function DashboardPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  // if (!user) redirect('/login') — auth disabled
-
-  const { data: brands } = await supabase.from('brands').select('id, name, handle').eq('user_id', user.id)
+  // Auth disabled — fetch all brands
+  const { data: brands } = await supabase.from('brands').select('id, name, handle')
   const brandIds = brands?.map((b: { id: string }) => b.id) ?? []
   const hasBrand = brandIds.length > 0
   const brand = brands?.[0]

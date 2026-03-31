@@ -11,10 +11,8 @@ export default async function ConnectionsPage({
   const { error: oauthError, platform: errorPlatform, connected } = await searchParams
 
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  // if (!user) redirect('/login') — auth disabled
-
-  const { data: brands } = await supabase.from('brands').select('id, name').eq('user_id', user.id).limit(1)
+  // Auth disabled — fetch all brands
+  const { data: brands } = await supabase.from('brands').select('id, name').limit(1)
   const brand = brands?.[0]
 
   const connections = brand

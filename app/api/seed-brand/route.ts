@@ -10,14 +10,10 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function POST(_request: NextRequest) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  // Check if user already has brands
+  // Auth disabled — check if any brand exists already
   const { data: existing } = await supabase
     .from('brands')
     .select('id')
-    .eq('user_id', user.id)
     .limit(1)
 
   if (existing?.length) {
@@ -28,7 +24,7 @@ export async function POST(_request: NextRequest) {
   const { data: brand, error: brandError } = await supabase
     .from('brands')
     .insert({
-      user_id: user.id,
+      user_id: '00000000-0000-0000-0000-000000000000',
       name: 'kalium.wav',
       handle: 'kalium.wav',
       niche: 'music production, sound design',
