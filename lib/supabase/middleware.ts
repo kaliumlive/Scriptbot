@@ -27,11 +27,6 @@ export async function updateSession(request: NextRequest) {
       },
     }
   )
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/register') && !request.nextUrl.pathname.startsWith('/api')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
+  // Auth disabled — allow all routes through
   return supabaseResponse
 }
