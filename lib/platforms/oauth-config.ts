@@ -17,19 +17,25 @@ export interface OAuthPlatformConfig {
 export const OAUTH_CONFIGS: Record<string, OAuthPlatformConfig> = {
   instagram: {
     platform: 'instagram',
-    label: 'Instagram',
-    envClientId: 'INSTAGRAM_CLIENT_ID',
-    envClientSecret: 'INSTAGRAM_CLIENT_SECRET',
-    authUrl: 'https://api.instagram.com/oauth/authorize',
-    tokenUrl: 'https://api.instagram.com/oauth/access_token',
-    scopes: ['user_profile', 'user_media', 'instagram_content_publish'],
+    label: 'Instagram Business',
+    envClientId: 'INSTAGRAM_APP_ID',
+    envClientSecret: 'INSTAGRAM_APP_SECRET',
+    authUrl: 'https://www.facebook.com/v19.0/dialog/oauth',
+    tokenUrl: 'https://graph.facebook.com/v19.0/oauth/access_token',
+    scopes: [
+      'instagram_basic',
+      'instagram_content_publish',
+      'pages_show_list',
+      'pages_read_engagement',
+      'public_profile'
+    ],
     scopeJoin: ',',
     color: 'from-pink-500 to-rose-500',
     badge: 'IG',
-    note: 'Requires Instagram Business or Creator account',
+    note: 'Requires Instagram Business account connected to a Facebook Page',
     setupGuide: [
-      { envVar: 'INSTAGRAM_CLIENT_ID', where: 'Meta Developer Console → Your App → Instagram Basic Display → App ID' },
-      { envVar: 'INSTAGRAM_CLIENT_SECRET', where: 'Meta Developer Console → Your App → Instagram Basic Display → App Secret' },
+      { envVar: 'INSTAGRAM_APP_ID', where: 'Meta Developer Console → Your App → Settings → Basic → App ID' },
+      { envVar: 'INSTAGRAM_APP_SECRET', where: 'Meta Developer Console → Your App → Settings → Basic → App Secret' },
     ],
   },
   tiktok: {
@@ -47,28 +53,6 @@ export const OAUTH_CONFIGS: Record<string, OAuthPlatformConfig> = {
     setupGuide: [
       { envVar: 'TIKTOK_CLIENT_ID', where: 'TikTok Developer Portal → App Detail → Client Key' },
       { envVar: 'TIKTOK_CLIENT_SECRET', where: 'TikTok Developer Portal → App Detail → Client Secret' },
-    ],
-  },
-  twitter: {
-    platform: 'twitter',
-    label: 'X / Twitter',
-    envClientId: 'TWITTER_CLIENT_ID',
-    envClientSecret: 'TWITTER_CLIENT_SECRET',
-    authUrl: 'https://twitter.com/i/oauth2/authorize',
-    tokenUrl: 'https://api.twitter.com/2/oauth2/token',
-    scopes: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'],
-    scopeJoin: ' ',
-    extraAuthParams: {
-      response_type: 'code',
-      code_challenge_method: 'plain',
-      code_challenge: 'challenge',
-    },
-    color: 'from-sky-400 to-blue-500',
-    badge: 'X',
-    note: 'Free tier: ~17 posts/day. Analytics not available.',
-    setupGuide: [
-      { envVar: 'TWITTER_CLIENT_ID', where: 'developer.twitter.com → Your App → Keys and Tokens → Client ID' },
-      { envVar: 'TWITTER_CLIENT_SECRET', where: 'developer.twitter.com → Your App → Keys and Tokens → Client Secret' },
     ],
   },
   linkedin: {
