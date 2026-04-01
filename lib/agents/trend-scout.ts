@@ -77,11 +77,11 @@ Return ONLY a JSON array, no markdown:
           trends = JSON.parse(clean)
         } catch {
           const match = rawText.match(/\[[\s\S]*\]/)
-          if (!match) { console.error(`TrendScout: parse failed for ${platform}`); continue }
+          if (!match) throw new Error(`Parse failed for ${platform}. Raw: ${rawText.slice(0, 200)}`)
           trends = JSON.parse(match[0])
         }
 
-        await supabase.from('trend_reports').insert({
+        const { error: insertError } = await supabase.from('trend_reports').insert({
           brand_id: brand.id,
           platform,
           niche,
@@ -89,9 +89,10 @@ Return ONLY a JSON array, no markdown:
           report_date: new Date().toISOString().split('T')[0],
         })
 
+        if (insertError) throw new Error(`Insert failed: ${insertError.message}`)
         totalReports++
       } catch (err) {
-        console.error(`TrendScout: error for brand ${brand.id} platform ${platform}:`, err)
+        return { brandsProcessed: 0, reportsCreated: 0, error: String(err) }
       }
     }
   }
