@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic'
  */
 
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(_request: NextRequest) {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   // Auth disabled — check if any brand exists already
   const { data: existing } = await supabase
     .from('brands')

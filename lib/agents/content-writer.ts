@@ -108,7 +108,7 @@ export async function runContentWriter(brandId?: string): Promise<{
   const supabase = createAdminClient()
 
   // Get brands
-  const brandsQuery = supabase.from('brands').select('id, name, niche, platforms').eq('is_active', true)
+  const brandsQuery = supabase.from('brands').select('id, name, niche, platforms')
   if (brandId) brandsQuery.eq('id', brandId)
   const { data: brands, error: brandsError } = await brandsQuery
 

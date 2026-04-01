@@ -25,7 +25,7 @@ export async function runTrendScout(brandId?: string): Promise<{
   const brandsQuery = supabase
     .from('brands')
     .select('id, name, niche, platforms, competitor_handles')
-    .eq('is_active', true)
+    
   if (brandId) brandsQuery.eq('id', brandId)
 
   const { data: brands, error } = await brandsQuery
