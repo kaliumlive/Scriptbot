@@ -30,8 +30,7 @@ export const OAUTH_CONFIGS: Record<string, OAuthPlatformConfig> = {
       'pages_read_engagement',
       'public_profile',
       'instagram_manage_comments',
-      'instagram_manage_messages',
-      'business_management'
+      'instagram_manage_messages'
     ],
     scopeJoin: ',',
     color: 'from-pink-500 to-rose-500',
