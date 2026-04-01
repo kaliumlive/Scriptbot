@@ -42,10 +42,12 @@ export async function runTrendScout(brandId?: string): Promise<{
   })
 
   let totalReports = 0
+  const diagnostics: string[] = []
 
   for (const brand of brands) {
     const platforms = (brand.platforms as string[]) ?? ['instagram', 'tiktok', 'youtube']
     const niche = brand.niche ?? 'music production'
+    diagnostics.push(`brand=${brand.name} platforms=${JSON.stringify(platforms)} niche=${niche}`)
 
     for (const platform of platforms.slice(0, 3)) {
       // Limit to 3 platforms to stay within Gemini free tier
@@ -97,5 +99,5 @@ Return ONLY a JSON array, no markdown:
     }
   }
 
-  return { brandsProcessed: brands.length, reportsCreated: totalReports }
+  return { brandsProcessed: brands.length, reportsCreated: totalReports, diagnostics }
 }
