@@ -8,7 +8,7 @@
  * GitHub Actions trigger: daily 8AM UTC (after Idea Generator)
  */
 
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { generateWithGroq } from '@/lib/ai/groq'
 import { buildVoiceSystemPrompt } from '@/lib/brand/voice'
 import type { BrandVoiceProfile } from '@/lib/brand/voice'
@@ -105,7 +105,7 @@ export async function runContentWriter(brandId?: string): Promise<{
   draftsCreated: number
   error?: string
 }> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // Get brands
   const brandsQuery = supabase.from('brands').select('id, name, niche, platforms').eq('is_active', true)

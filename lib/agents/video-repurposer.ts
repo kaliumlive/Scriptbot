@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { extractFrames } from '../video/frame-extractor'
 import { generateWithGemini } from '../ai/gemini'
 import { generateWithGroq } from '../ai/groq'
 import { renderSlides } from '../carousel/renderer'
 
 export async function runVideoRepurposer(brandId: string, jobId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     // 1. Get Job & Brand Info
     const { data: job } = await supabase

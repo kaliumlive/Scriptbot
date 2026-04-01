@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { postToYouTube } from '../platforms/youtube'
 import { postToLinkedIn } from '../platforms/linkedin'
 import { postToInstagram } from '../platforms/instagram'
@@ -14,7 +14,7 @@ const PLATFORM_PUBLISHERS = {
 }
 
 export async function runPublisher(brandId?: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     // 1. Find posts due for publishing
     const query = supabase

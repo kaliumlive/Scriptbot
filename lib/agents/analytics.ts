@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getYouTubeMetrics } from '../platforms/youtube'
 import { getLinkedInMetrics } from '../platforms/linkedin'
 import { getInstagramMetrics } from '../platforms/instagram'
@@ -15,7 +15,7 @@ const PLATFORM_METRICS = {
 }
 
 export async function runAnalytics(brandId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     // 1. Get published posts for the brand
     const { data: posts } = await supabase

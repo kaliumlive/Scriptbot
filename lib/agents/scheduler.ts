@@ -1,8 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { addDays, setHours, setMinutes } from 'date-fns'
 
 export async function runScheduler(brandId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     const { data: drafts } = await supabase
         .from('content_drafts')

@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
  */
 
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { runVoiceLearner } from '@/lib/agents/voice-learner'
 import { runIdeaGenerator } from '@/lib/agents/idea-generator'
 import { runContentWriter } from '@/lib/agents/content-writer'
@@ -31,7 +31,7 @@ const AGENT_RUNNERS = {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   // Auth disabled — allow all requests
   const body = await request.json().catch(() => ({}))
   const { agent, brandId, ...extra } = body as {

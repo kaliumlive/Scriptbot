@@ -8,7 +8,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function runTrendScout(brandId?: string): Promise<{
   brandsProcessed: number
@@ -20,7 +20,7 @@ export async function runTrendScout(brandId?: string): Promise<{
     return { brandsProcessed: 0, reportsCreated: 0, error: 'GEMINI_API_KEY not configured' }
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const brandsQuery = supabase
     .from('brands')

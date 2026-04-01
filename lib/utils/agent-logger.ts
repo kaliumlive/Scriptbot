@@ -1,7 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function logAgentStart(agentName: string, brandId?: string): Promise<string> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data } = await supabase
     .from('agent_logs')
     .insert({
@@ -23,7 +23,7 @@ export async function logAgentComplete(
   metadata?: Record<string, unknown>
 ) {
   if (!logId) return
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   await supabase
     .from('agent_logs')
     .update({
@@ -39,7 +39,7 @@ export async function logAgentComplete(
 
 export async function logAgentError(logId: string, startedAt: number, error: string) {
   if (!logId) return
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   await supabase
     .from('agent_logs')
     .update({
