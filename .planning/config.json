@@ -1,0 +1,9 @@
+{
+  "mode": "interactive",
+  "granularity": "granular",
+  "profile": "quality",
+  "waves": true,
+  "git": true,
+  "vcs": "git",
+  "onboarding": "skip"
+}
