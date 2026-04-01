@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import {
   LayoutDashboard,
   Kanban,
@@ -26,10 +27,14 @@ const navItems = [
 
 import AgentSidebar from '@/components/dashboard/AgentSidebar'
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
+function SuspendedAgentSidebar() {
   const searchParams = useSearchParams()
   const brandId = searchParams.get('brandId') || '253b5cdf-1bcc-4d59-973a-b51da740dfdb'
+  return <AgentSidebar brandId={brandId} />
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
 
   return (
     <div className="flex min-h-screen bg-[#09090b]">
@@ -89,7 +94,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="flex-1 overflow-auto min-w-0">{children}</main>
 
       {/* Global Agency Sidebar */}
-      <AgentSidebar brandId={brandId} />
+      <Suspense fallback={null}>
+        <SuspendedAgentSidebar />
+      </Suspense>
     </div>
   )
 }
