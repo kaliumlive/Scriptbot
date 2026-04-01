@@ -110,22 +110,29 @@ export function createCallbackHandler(platform: string) {
 
         // 2. Get pages managed by the user
         const pagesRes = await fetch(
-          `https://graph.facebook.com/v19.0/me/accounts?access_token=${accessToken}`
+          `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token&access_token=${accessToken}`
         )
         const pagesData = await pagesRes.json()
         
+        const debugLogs: any[] = []
+
         if (pagesData.data && pagesData.data.length > 0) {
           console.log(`[Instagram OAuth] Found ${pagesData.data.length} Facebook Pages. Searching for linked IG Business Account...`)
           // Find the first page that has an instagram_business_account
           for (const page of pagesData.data) {
+            const pageToken = page.access_token || accessToken
             const igRes = await fetch(
-              `https://graph.facebook.com/v19.0/${page.id}?fields=instagram_business_account,name&access_token=${accessToken}`
+              `https://graph.facebook.com/v19.0/${page.id}?fields=instagram_business_account,connected_instagram_account,name&access_token=${pageToken}`
             )
             const igData = await igRes.json()
             console.log(`[Instagram OAuth] Checking Page "${igData.name}" (${page.id})...`)
             
-            if (igData.instagram_business_account) {
-              instagramBusinessId = igData.instagram_business_account.id
+            debugLogs.push({ pageId: page.id, pageName: page.name || igData.name, igData })
+
+            const igId = igData.instagram_business_account?.id || igData.connected_instagram_account?.id
+            
+            if (igId) {
+              instagramBusinessId = igId
               pageId = page.id
               console.log(`[Instagram OAuth] Found linked IG Business ID: ${instagramBusinessId}`)
               break
@@ -135,11 +142,22 @@ export function createCallbackHandler(platform: string) {
           }
         } else {
           console.error('[Instagram OAuth] No Facebook Pages found for this user.')
+          debugLogs.push({ error: 'No Facebook pages found in me/accounts', pagesData })
         }
+
+        const supabase = await createClient()
 
         if (!instagramBusinessId) {
           interface FacebookPage { id: string; name: string }
           console.error('[Instagram OAuth] No Business Account found for pages:', pagesData.data?.map((p: FacebookPage) => `${p.name} (${p.id})`))
+          
+          await supabase.from('agent_logs').insert({
+            agent_name: 'oauth_debug',
+            level: 'error',
+            message: 'IG OAuth Failure - Data Dump',
+            metadata: { debugLogs, pagesData }
+          })
+          
           throw new Error('No Instagram Business Account linked to the selected Facebook Page. Please ensure your Instagram account is a Professional account (Business or Creator) and linked to a Facebook Page.')
         }
 
