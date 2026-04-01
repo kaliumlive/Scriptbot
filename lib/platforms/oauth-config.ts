@@ -33,6 +33,7 @@ export const OAUTH_CONFIGS: Record<string, OAuthPlatformConfig> = {
       'instagram_manage_messages'
     ],
     scopeJoin: ',',
+    extraAuthParams: { config_id: process.env.INSTAGRAM_CONFIG_ID || '2760816937613550' },
     color: 'from-pink-500 to-rose-500',
     badge: 'IG',
     note: 'Requires Instagram Business account connected to a Facebook Page',

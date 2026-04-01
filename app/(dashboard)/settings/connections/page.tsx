@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { OAUTH_CONFIGS } from '@/lib/platforms/oauth-config'
-import { CheckCircle2, ExternalLink, AlertCircle, ChevronDown } from 'lucide-react'
+import { CheckCircle2, ExternalLink, AlertCircle, ChevronDown, Rocket } from 'lucide-react'
+import { disconnectPlatform, initializeDefaultBrand } from './actions'
 
 export default async function ConnectionsPage({
   searchParams,
@@ -80,8 +81,16 @@ export default async function ConnectionsPage({
       )}
 
       {!brand && (
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 mb-6 text-sm text-amber-400">
-          Import your brand profile first before connecting platforms.
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 mb-6 flex items-center justify-between">
+          <div className="text-sm text-amber-400">
+            Import your brand profile first before connecting platforms.
+          </div>
+          <form action={initializeDefaultBrand}>
+             <button type="submit" className="text-xs flex items-center gap-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-1.5 rounded-lg transition-colors border border-amber-500/30">
+                <Rocket className="w-3.5 h-3.5" />
+                Initialize Profile
+             </button>
+          </form>
         </div>
       )}
 
@@ -125,20 +134,32 @@ export default async function ConnectionsPage({
                   <p className="text-xs text-zinc-600 mt-0.5">{p.note}</p>
                 </div>
 
-                <a
-                  href={brand ? `/api/oauth/${p.platform}?brand_id=${brand.id}` : '#'}
-                  className={`shrink-0 text-xs px-3.5 py-1.5 rounded-lg border font-medium transition-all ${
-                    !brand
-                      ? 'text-zinc-700 border-zinc-800 cursor-not-allowed pointer-events-none'
-                      : isConnected
-                        ? 'text-zinc-400 border-zinc-700 hover:border-zinc-600 hover:text-zinc-300'
-                        : isConfigured
-                          ? 'text-zinc-900 bg-zinc-100 border-zinc-100 hover:bg-white'
-                          : 'text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-400'
-                  }`}
-                >
-                  {isConnected ? 'Reconnect' : 'Connect'}
-                </a>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={brand ? `/api/oauth/${p.platform}?brand_id=${brand.id}` : '#'}
+                    className={`shrink-0 text-xs px-3.5 py-1.5 rounded-lg border font-medium transition-all ${
+                      !brand
+                        ? 'text-zinc-700 border-zinc-800 cursor-not-allowed pointer-events-none'
+                        : isConnected
+                          ? 'text-zinc-400 border-zinc-700 hover:border-zinc-600 hover:text-zinc-300'
+                          : isConfigured
+                            ? 'text-zinc-900 bg-zinc-100 border-zinc-100 hover:bg-white'
+                            : 'text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-400'
+                    }`}
+                  >
+                    {isConnected ? 'Reconnect' : 'Connect'}
+                  </a>
+                  {isConnected && (
+                    <form action={disconnectPlatform.bind(null, p.platform)}>
+                      <button
+                        type="submit"
+                        className="shrink-0 text-xs px-3.5 py-1.5 rounded-lg border border-red-500/20 text-red-400 bg-red-500/10 hover:bg-red-500/20 hover:border-red-500/30 transition-all font-medium"
+                      >
+                        Disconnect
+                      </button>
+                    </form>
+                  )}
+                </div>
               </div>
 
               {/* Setup guide (collapsed accordion) — show when not configured */}
