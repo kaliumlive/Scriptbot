@@ -25,11 +25,26 @@ const navItems = [
   { href: '/settings/connections', label: 'Connect', icon: Settings },
 ]
 
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import AgentSidebar from '@/components/dashboard/AgentSidebar'
 
 function SuspendedAgentSidebar() {
   const searchParams = useSearchParams()
-  const brandId = searchParams.get('brandId') || '253b5cdf-1bcc-4d59-973a-b51da740dfdb'
+  const urlBrandId = searchParams.get('brandId')
+  const [brandId, setBrandId] = useState<string | null>(urlBrandId)
+
+  useEffect(() => {
+    if (urlBrandId) return
+    const fetchBrand = async () => {
+      const supabase = createClient()
+      const { data } = await supabase.from('brands').select('id').limit(1)
+      if (data?.[0]) setBrandId(data[0].id)
+    }
+    fetchBrand()
+  }, [urlBrandId])
+
+  if (!brandId) return null
   return <AgentSidebar brandId={brandId} />
 }
 

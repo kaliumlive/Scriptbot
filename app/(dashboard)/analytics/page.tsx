@@ -5,7 +5,11 @@ import { Layers } from 'lucide-react'
 
 export default async function AnalyticsPage() {
   const supabase = await createClient()
-  const brandId = '253b5cdf-1bcc-4d59-973a-b51da740dfdb' // Update this when multi-brand support is fully implemented
+  const { data: brands } = await supabase.from('brands').select('id, name, handle').limit(1)
+  const brand = brands?.[0]
+  const brandId = brand?.id
+
+  if (!brandId) return <div className="p-6 text-zinc-400">Brand not found</div>
 
   // 1. Fetch latest published posts
   const { data: posts } = await supabase

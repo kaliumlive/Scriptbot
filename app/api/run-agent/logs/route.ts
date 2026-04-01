@@ -3,14 +3,15 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
     const supabase = await createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-
-    if (!session) {
-        return Response.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     const { searchParams } = new URL(request.url)
-    const brandId = searchParams.get('brandId') || '253b5cdf-1bcc-4d59-973a-b51da740dfdb'
+    let brandId = searchParams.get('brandId')
+    
+    if (!brandId) {
+        const { data: brands } = await supabase.from('brands').select('id').limit(1)
+        brandId = brands?.[0]?.id || ''
+    }
+
     const limit = parseInt(searchParams.get('limit') || '5')
 
     try {

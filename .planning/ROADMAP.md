@@ -3,12 +3,12 @@
 ## Milestone 1: Foundations & Connections
 **Goal**: Establish the stable infrastructure for agentic execution and multi-platform distribution.
 
-### Phase 1: Connectivity Audit & Fix (ACTIVE)
-- [ ] Debug Instagram OAuth "Invalid Scopes" error in Meta Console.
-- [ ] Verify `brand_id` and `brand` initialization logic on the live site.
-- [ ] Add "Reconnect" and "Disconnect" UI lifecycle actions.
+### Phase 1: Connectivity Audit & Fix (COMPLETE)
+- [x] Debug Instagram OAuth "Invalid Scopes" error in Meta Console.
+- [x] Verify `brand_id` and `brand` initialization logic on the live site.
+- [x] Add "Reconnect" and "Disconnect" UI lifecycle actions.
 
-### Phase 2: Deployment Alignment
+### Phase 2: Deployment Alignment (ACTIVE)
 - [ ] Sync Vercel environment variables.
 - [ ] Finalize GitHub to Vercel production pipeline.
 

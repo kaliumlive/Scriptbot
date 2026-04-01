@@ -4,10 +4,11 @@ import { chatWithAgencyLead } from '@/lib/agents/agency-lead'
 
 export async function POST(request: NextRequest) {
     const supabase = await createClient()
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: brands } = await supabase.from('brands').select('id').limit(1)
+    const defaultBrandId = brands?.[0]?.id
 
-    if (!session) {
-        return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!defaultBrandId) {
+        return Response.json({ error: 'No brand found' }, { status: 400 })
     }
 
     const { message, history, brandId: bodyBrandId } = await request.json()
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const brandId = bodyBrandId || '253b5cdf-1bcc-4d59-973a-b51da740dfdb'
+        const brandId = bodyBrandId || defaultBrandId
         const response = await chatWithAgencyLead(brandId, message, history || [])
         return Response.json({ response })
     } catch (error) {
