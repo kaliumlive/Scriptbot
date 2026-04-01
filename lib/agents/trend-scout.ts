@@ -50,14 +50,38 @@ Return ONLY a JSON array, no markdown:
 
         const rawText = await generateWithGroq(prompt)
 
-        let trends: Array<{topic: string; angle: string; format: string; why_trending: string}>
+        let trends: Array<{topic: string; angle: string; format: string; why_trending: string}> = []
         try {
-          const clean = rawText.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '')
-          trends = JSON.parse(clean)
-        } catch {
+          const clean = rawText
+            .replace(/```(?:json)?/g, '')
+            .replace(/```/g, '')
+            .trim()
+          
+          const start = clean.indexOf('[')
+          const end = clean.lastIndexOf(']')
+          
+          if (start !== -1 && end !== -1) {
+            trends = JSON.parse(clean.substring(start, end + 1))
+          } else {
+            trends = JSON.parse(clean)
+          }
+        } catch (err) {
+          console.error(`TrendScout: parse error for ${platform}:`, err)
+          // Fallback: try to find anything that looks like an array
           const match = rawText.match(/\[[\s\S]*\]/)
-          if (!match) throw new Error(`Parse failed for ${platform}. Raw: ${rawText.slice(0, 200)}`)
-          trends = JSON.parse(match[0])
+          if (match) {
+            try {
+              trends = JSON.parse(match[0])
+            } catch {
+              throw new Error(`Parse failed for ${platform}. Raw: ${rawText.slice(0, 100)}...`)
+            }
+          } else {
+            throw new Error(`No JSON array found in response for ${platform}`)
+          }
+        }
+
+        if (!Array.isArray(trends) || trends.length === 0) {
+          throw new Error(`Invalid trend data for ${platform}: expected non-empty array`)
         }
 
         const { error: insertError } = await supabase.from('trend_reports').insert({

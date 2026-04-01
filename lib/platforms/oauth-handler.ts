@@ -72,7 +72,7 @@ export function createCallbackHandler(platform: string) {
     const redirectUri = `${appUrl}/api/oauth/${platform}/callback`
 
     try {
-      const tokenRes = await fetch(config.tokenUrl, {
+      const resp = await fetch(config.tokenUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -84,18 +84,67 @@ export function createCallbackHandler(platform: string) {
         }),
       })
 
-      const tokens = await tokenRes.json()
-      if (!tokenRes.ok) throw new Error(JSON.stringify(tokens))
+      const tokens = await resp.json()
+      if (!resp.ok) throw new Error(JSON.stringify(tokens))
+
+      let accessToken = tokens.access_token
+      let instagramBusinessId: string | null = null
+      let pageId: string | null = null
+
+      // Special handling for Instagram to get the Business Account ID
+      if (platform === 'instagram') {
+        // 1. Get long-lived token (recommended for server-side)
+        const longLivedRes = await fetch(
+          `https://graph.facebook.com/v19.0/oauth/access_token?` +
+          new URLSearchParams({
+            grant_type: 'fb_exchange_token',
+            client_id: clientId,
+            client_secret: clientSecret,
+            fb_exchange_token: accessToken,
+          })
+        )
+        const longLivedData = await longLivedRes.json()
+        if (longLivedData.access_token) {
+          accessToken = longLivedData.access_token
+        }
+
+        // 2. Get pages managed by the user
+        const pagesRes = await fetch(
+          `https://graph.facebook.com/v19.0/me/accounts?access_token=${accessToken}`
+        )
+        const pagesData = await pagesRes.json()
+        
+        if (pagesData.data && pagesData.data.length > 0) {
+          // Find the first page that has an instagram_business_account
+          for (const page of pagesData.data) {
+            const igRes = await fetch(
+              `https://graph.facebook.com/v19.0/${page.id}?fields=instagram_business_account&access_token=${accessToken}`
+            )
+            const igData = await igRes.json()
+            if (igData.instagram_business_account) {
+              instagramBusinessId = igData.instagram_business_account.id
+              pageId = page.id
+              break
+            }
+          }
+        }
+
+        if (!instagramBusinessId) {
+          throw new Error('No Instagram Business Account linked to the selected Facebook Page.')
+        }
+      }
 
       const supabase = await createClient()
       await supabase.from('platform_connections').upsert({
         brand_id: brandId,
         platform,
-        access_token: tokens.access_token,
+        access_token: accessToken,
         refresh_token: tokens.refresh_token ?? null,
         token_expires_at: tokens.expires_in
           ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
           : null,
+        external_account_id: instagramBusinessId || null,
+        external_page_id: pageId || null,
         is_active: true,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'brand_id,platform' })
@@ -103,10 +152,12 @@ export function createCallbackHandler(platform: string) {
       const url = new URL('/settings/connections', appUrl)
       url.searchParams.set('connected', platform)
       return NextResponse.redirect(url)
-    } catch (err) {
+    } catch (err: unknown) {
+      console.error('OAuth Error:', err instanceof Error ? err.message : String(err))
       const url = new URL('/settings/connections', appUrl)
       url.searchParams.set('error', 'token_exchange_failed')
       url.searchParams.set('platform', platform)
+      url.searchParams.set('message', err instanceof Error ? err.message : 'Unknown error')
       return NextResponse.redirect(url)
     }
   }
