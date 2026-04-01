@@ -39,3 +39,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python
+__pycache__/
+*.py[cod]
+
+# local tools
+.gemini/
+.claude/
+.agents/
+.agent/
+_agents/
+_agent/
