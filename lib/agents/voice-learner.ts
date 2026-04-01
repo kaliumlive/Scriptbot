@@ -91,7 +91,7 @@ export async function runVoiceLearner(input: VoiceLearnerInput): Promise<{
   }
 
   const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
   const supabase = createAdminClient()
 
   // Get existing voice profile for brand answers

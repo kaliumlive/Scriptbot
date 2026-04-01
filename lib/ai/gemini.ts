@@ -6,7 +6,7 @@ function getGenAI(): GoogleGenerativeAI {
   return _genAI
 }
 
-function getPro(): GenerativeModel { return getGenAI().getGenerativeModel({ model: 'gemini-1.5-pro' }) }
+function getPro(): GenerativeModel { return getGenAI().getGenerativeModel({ model: 'gemini-1.5-flash' }) }
 function getFlash(): GenerativeModel { return getGenAI().getGenerativeModel({ model: 'gemini-1.5-flash' }) }
 
 export async function generateWithGemini(prompt: string, model: 'pro' | 'flash' = 'flash'): Promise<string> {
