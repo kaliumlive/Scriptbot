@@ -1,15 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { Video, Play, Layers, ArrowRight } from 'lucide-react'
+import { Layers, ArrowRight } from 'lucide-react'
 import VideoUploader from '@/components/repurpose/VideoUploader'
 import CarouselPreview from '@/components/repurpose/CarouselPreview'
 
+const YoutubeIcon = ({ className }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 2-2 103.03 103.03 0 0 1 15 0 2 2 0 0 1 2 2 24.12 24.12 0 0 1 0 10 2 2 0 0 1-2 2 103.03 103.03 0 0 1-15 0 2 2 0 0 1-2-2Z" />
+    <path d="m10 15 5-3-5-3v6Z" />
+  </svg>
+)
+
 export default async function RepurposePage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  // if (!user) redirect('/login') — auth disabled
+  await supabase.auth.getUser()
 
   // Fetch recent drafts
   const { data: drafts } = await supabase
@@ -32,7 +43,7 @@ export default async function RepurposePage() {
 
         <div className="bg-zinc-900 border border-dashed border-zinc-700 rounded-xl p-8 text-center hover:border-zinc-600 transition-colors cursor-pointer group">
           <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:bg-red-500/20 transition-colors">
-            <Play className="w-5 h-5 text-red-500" />
+            <YoutubeIcon className="w-5 h-5 text-red-500" />
           </div>
           <p className="text-zinc-200 text-sm font-semibold mb-1">Connect YouTube</p>
           <p className="text-zinc-500 text-xs">Import from your channel automatically</p>
@@ -49,7 +60,7 @@ export default async function RepurposePage() {
             <h2 className="text-sm font-bold text-zinc-300 uppercase tracking-wider">Recent Drafts</h2>
           </div>
           <div className="grid grid-cols-1 gap-4">
-            {drafts.map((draft: any) => (
+            {drafts.map((draft: { id: string; [key: string]: any }) => (
               <CarouselPreview key={draft.id} draft={draft} />
             ))}
           </div>

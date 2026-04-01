@@ -99,7 +99,10 @@ export async function postToInstagram(brandId: string, draftId: string) {
 
     // Log completion for debugging
     console.log(`Instagram publication complete for brand ${brandId}. Post ID: ${publishData.id}`)
-    return { success: true, platform: 'instagram', externalId: publishData.id }
+    return {
+        platform_post_id: publishData.id,
+        platform_post_url: `https://www.instagram.com/reels/${publishData.id}/`
+    }
 }
 
 export async function getInstagramMetrics() {
