@@ -7,20 +7,14 @@
  * GitHub Actions trigger: every 4 hours
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { generateWithGroq } from '@/lib/ai/groq'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function runTrendScout(brandId?: string): Promise<{
   brandsProcessed: number
   reportsCreated: number
   error?: string
-  diagnostics?: string[]
 }> {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) {
-    return { brandsProcessed: 0, reportsCreated: 0, error: 'GEMINI_API_KEY not configured' }
-  }
-
   const supabase = createAdminClient()
 
   const query = supabase
@@ -32,47 +26,29 @@ export async function runTrendScout(brandId?: string): Promise<{
     : await query
 
   if (error || !brands?.length) {
-    return { brandsProcessed: 0, reportsCreated: 0, error: error?.message ?? `No brands found (brandId: ${brandId ?? 'none'})` }
+    return { brandsProcessed: 0, reportsCreated: 0, error: error?.message ?? `No brands found` }
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey)
-  // Use Gemini with grounding for real-time trend data
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    tools: [{ googleSearch: {} } as never],
-  })
-
   let totalReports = 0
-  const diagnostics: string[] = []
 
   for (const brand of brands) {
     const platforms = (brand.platforms as string[]) ?? ['instagram', 'tiktok', 'youtube']
     const niche = brand.niche ?? 'music production'
-    diagnostics.push(`brand=${brand.name} platforms=${JSON.stringify(platforms)} niche=${niche}`)
 
     for (const platform of platforms.slice(0, 3)) {
-      // Limit to 3 platforms to stay within Gemini free tier
       try {
-        const prompt = `What are the top 5 trending content topics and formats for ${niche} creators on ${platform} RIGHT NOW in ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}?
+        const prompt = `What are the top 5 trending content topics and formats for ${niche} creators on ${platform} in ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}?
 
-For each trend, return:
+For each trend return:
 - topic: the trend title
-- angle: the specific angle that's working (not just the topic, but HOW creators are approaching it)
+- angle: the specific angle that's working
 - format: content format (short_video, carousel, live, etc.)
-- why_trending: 1 sentence on why this is hitting right now
+- why_trending: 1 sentence on why this is resonating
 
 Return ONLY a JSON array, no markdown:
-[
-  {
-    "topic": "trend title",
-    "angle": "the specific working angle",
-    "format": "short_video",
-    "why_trending": "why this is resonating now"
-  }
-]`
+[{"topic":"...","angle":"...","format":"...","why_trending":"..."}]`
 
-        const result = await model.generateContent(prompt)
-        const rawText = result.response.text().trim()
+        const rawText = await generateWithGroq(prompt)
 
         let trends: Array<{topic: string; angle: string; format: string; why_trending: string}>
         try {
@@ -100,6 +76,6 @@ Return ONLY a JSON array, no markdown:
     }
   }
 
-  return { brandsProcessed: brands.length, reportsCreated: totalReports, diagnostics }
+  return { brandsProcessed: brands.length, reportsCreated: totalReports }
 }
 // 01 Apr 2026 06:07:20
