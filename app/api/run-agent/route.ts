@@ -31,7 +31,6 @@ const AGENT_RUNNERS = {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = createAdminClient()
   // Auth disabled — allow all requests
   const body = await request.json().catch(() => ({}))
   const { agent, brandId, ...extra } = body as {
@@ -46,17 +45,6 @@ export async function POST(request: NextRequest) {
 
   if (!brandId) {
     return Response.json({ error: 'brandId is required' }, { status: 400 })
-  }
-
-  // Verify brand exists
-  const { data: brand } = await supabase
-    .from('brands')
-    .select('id')
-    .eq('id', brandId)
-    .single()
-
-  if (!brand) {
-    return Response.json({ error: 'Brand not found' }, { status: 404 })
   }
 
   const startedAt = Date.now()
