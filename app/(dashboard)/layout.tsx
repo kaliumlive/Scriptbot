@@ -1,7 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Kanban,
@@ -10,83 +9,80 @@ import {
   BarChart3,
   Settings,
   Zap,
-  LogOut,
+  User,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/pipeline', label: 'Pipeline', icon: Kanban },
+  { href: '/pipeline',  label: 'Pipeline',  icon: Kanban },
   { href: '/repurpose', label: 'Repurpose', icon: Video },
-  { href: '/calendar', label: 'Calendar', icon: Calendar },
+  { href: '/calendar',  label: 'Calendar',  icon: Calendar },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/brands', label: 'Brands', icon: Zap },
-  { href: '/settings/connections', label: 'Settings', icon: Settings },
+  { href: '/brands',    label: 'Brand',     icon: User },
+  { href: '/settings/connections', label: 'Connect', icon: Settings },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const router = useRouter()
-
-  async function handleSignOut() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
 
   return (
     <div className="flex min-h-screen bg-[#09090b]">
-      <aside className="w-52 shrink-0 border-r border-white/[0.06] flex flex-col">
+      <aside className="w-[200px] shrink-0 border-r border-white/[0.05] flex flex-col">
+
         {/* Logo */}
-        <div className="h-14 flex items-center px-4 border-b border-white/[0.06]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
-              <Zap className="w-3.5 h-3.5 text-white" />
+        <div className="h-[56px] flex items-center px-4 border-b border-white/[0.05]">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center shadow-md shadow-violet-900/40 shrink-0">
+              <Zap className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
             </div>
-            <span className="text-sm font-semibold text-zinc-100 tracking-tight">Scriptbot</span>
+            <span className="text-sm font-semibold text-zinc-100 tracking-tight font-display">Scriptbot</span>
           </div>
-          <span className="ml-auto text-[9px] font-medium text-violet-400 bg-violet-400/10 border border-violet-400/20 rounded px-1.5 py-0.5 tracking-wide">
+          <span className="text-[9px] font-semibold text-violet-400/70 bg-violet-400/10 rounded px-1.5 py-0.5 tracking-widest shrink-0">
             BETA
           </span>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-3 px-2 space-y-0.5">
+        <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
           {navItems.map(item => {
             const active =
               pathname === item.href ||
-              (item.href !== '/' && pathname.startsWith(item.href))
+              (item.href !== '/dashboard' && pathname.startsWith(item.href))
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150',
+                  'flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] font-medium transition-all duration-100 cursor-pointer',
                   active
-                    ? 'bg-violet-500/10 text-violet-300 border border-violet-500/20'
+                    ? 'bg-violet-500/[0.12] text-violet-300 border border-violet-500/20'
                     : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'
                 )}
               >
-                <item.icon className={cn('w-4 h-4 shrink-0', active ? 'text-violet-400' : '')} />
+                <item.icon className={cn('w-[15px] h-[15px] shrink-0', active ? 'text-violet-400' : 'text-zinc-600')} />
                 {item.label}
               </Link>
             )
           })}
         </nav>
 
-        {/* Sign out */}
-        <div className="p-2 border-t border-white/[0.06]">
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.04] transition-all w-full border border-transparent"
-          >
-            <LogOut className="w-4 h-4 shrink-0" />
-            Sign out
-          </button>
+        {/* Footer */}
+        <div className="px-4 py-4 border-t border-white/[0.05]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500/40 to-fuchsia-500/40 border border-white/10 flex items-center justify-center shrink-0">
+              <span className="text-[10px] font-bold text-violet-300">K</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium text-zinc-400 truncate">@kalium.wav</p>
+              <p className="text-[10px] text-zinc-700">music producer</p>
+            </div>
+          </div>
         </div>
+
       </aside>
 
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto min-w-0">{children}</main>
     </div>
   )
 }
