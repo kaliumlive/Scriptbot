@@ -14,6 +14,7 @@ export async function runTrendScout(brandId?: string): Promise<{
   brandsProcessed: number
   reportsCreated: number
   error?: string
+  diagnostics?: string[]
 }> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
