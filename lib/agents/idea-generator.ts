@@ -94,9 +94,8 @@ export async function runIdeaGenerator(brandId?: string): Promise<{
   const supabase = createAdminClient()
 
   // Get brands to process
-  const brandsQuery = supabase.from('brands').select('id, name, niche, platforms')
-  if (brandId) brandsQuery.eq('id', brandId)
-  const { data: brands, error: brandsError } = await brandsQuery
+  const q = supabase.from('brands').select('id, name, niche, platforms')
+  const { data: brands, error: brandsError } = brandId ? await q.eq('id', brandId) : await q
 
   if (brandsError || !brands?.length) {
     return { brandsProcessed: 0, ideasCreated: 0, error: brandsError?.message ?? 'No active brands found' }

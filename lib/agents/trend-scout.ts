@@ -22,15 +22,16 @@ export async function runTrendScout(brandId?: string): Promise<{
 
   const supabase = createAdminClient()
 
-  const brandsQuery = supabase
+  const query = supabase
     .from('brands')
     .select('id, name, niche, platforms, competitor_handles')
-    
-  if (brandId) brandsQuery.eq('id', brandId)
 
-  const { data: brands, error } = await brandsQuery
+  const { data: brands, error } = brandId
+    ? await query.eq('id', brandId)
+    : await query
+
   if (error || !brands?.length) {
-    return { brandsProcessed: 0, reportsCreated: 0, error: error?.message ?? 'No active brands' }
+    return { brandsProcessed: 0, reportsCreated: 0, error: error?.message ?? `No brands found (brandId: ${brandId ?? 'none'})` }
   }
 
   const genAI = new GoogleGenerativeAI(apiKey)
