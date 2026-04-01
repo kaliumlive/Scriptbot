@@ -26,7 +26,7 @@ interface ContentIdea {
   content_type: string
 }
 
-function pickHookTemplate(contentType: string, storyStructureId: string): string {
+function pickHookTemplate(): string {
   const candidates = HOOK_DATABASE.filter(t =>
     t.mass_appeal ||
     t.category === 'burning-question' ||
@@ -56,8 +56,12 @@ function buildWritingPrompt(idea: ContentIdea, hookTemplate: string, voiceProfil
     return `- ${p}: platform-appropriate format`
   }).join('\n')
 
+  const voiceInstructions = voiceProfile 
+    ? `\nCREATOR VOICE GUIDELINES:\nTONE: ${voiceProfile.natural_tone ?? 'Professional but direct'}\nPHRASES THEY USE: ${voiceProfile.personal_phrases?.join(', ') ?? 'None'}\nNEVER USE: ${voiceProfile.not_my_voice_phrases?.join(', ') ?? 'None'}`
+    : ''
+
   const structureGuide = structure
-    ? `\nSTORY STRUCTURE (${structure.name}):\n${structure.stages.map((s, i) => `${i + 1}. ${s.name}: ${s.purpose}`).join('\n')}`
+    ? `\nSTORY STRUCTURE (${structure.name}):\nVISUAL THEME: ${structure.visual_theme ?? 'Standard creator-style'}\n${structure.stages.map((s, i) => `${i + 1}. ${s.name}: ${s.purpose} (Visuals: ${s.visual_guidance ?? 'Follow theme'})`).join('\n')}`
     : ''
 
   const hookGuide = hookTemplate
@@ -71,6 +75,7 @@ CONCEPT: ${idea.concept}
 ORIGINAL HOOK IDEA: ${idea.hook}
 CONTENT TYPE: ${idea.content_type}
 PLATFORMS: ${platforms.join(', ')}
+${voiceInstructions}
 ${structureGuide}
 ${hookGuide}
 
@@ -81,12 +86,17 @@ OUTPUT FORMAT — return ONLY this JSON, no markdown:
   "build_up": "the setup that creates tension or stakes",
   "value_section": "the main content / teaching / story",
   "payoff": "the resolution, insight, or punchline",
-  "script": "full script or caption text (the complete piece)",
-  "b_roll_notes": "visual direction notes if applicable",
-  "hashtags": ["relevant", "hashtags"],
-  "platform_versions": {
-${platforms.map(p => `    "${p}": "platform-specific version of the content"`).join(',\n')}
-  }
+  "script": "full script (the complete piece)",
+  "storyboard": [
+    {
+      "text": "the specific sentence or segment from the script",
+      "visual": "detailed visual cue (e.g. 'Mograph: Animated spectrum analyzer', 'B-roll: Close-up of hands on keyboard')",
+      "style": "cinematic|mograph|talking-head|movie-clip",
+      "movie_reference": "Optional: Title of an iconic movie scene that fits the vibe (e.g. 'The Matrix - Lobby Scene')",
+      "duration": 2.5
+    }
+  ],
+  "hashtags": ["relevant", "hashtags"]
 }
 
 RULES:
@@ -141,23 +151,12 @@ export async function runContentWriter(brandId?: string): Promise<{
 
       for (const idea of ideas as ContentIdea[]) {
         try {
-          const hookTemplate = pickHookTemplate(idea.content_type, idea.story_structure_id)
+          const hookTemplate = pickHookTemplate()
           const prompt = buildWritingPrompt(idea, hookTemplate, voiceProfile as BrandVoiceProfile | null)
 
           const raw = await generateWithGroq(prompt, systemPrompt)
 
-          let draft: {
-            title: string
-            hook: string
-            build_up: string
-            value_section: string
-            payoff: string
-            script: string
-            b_roll_notes?: string
-            hashtags: string[]
-            platform_versions: Record<string, string>
-          }
-
+          let draft: any
           try {
             const clean = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
             draft = JSON.parse(clean)
@@ -182,8 +181,7 @@ export async function runContentWriter(brandId?: string): Promise<{
             value_section: draft.value_section,
             payoff: draft.payoff,
             hashtags: draft.hashtags ?? [],
-            platforms: idea.target_platforms ?? [],
-            b_roll_notes: draft.b_roll_notes ?? null,
+            storyboard: draft.storyboard ?? [],
             status: 'draft',
           }).select('id').single()
 
@@ -192,12 +190,14 @@ export async function runContentWriter(brandId?: string): Promise<{
             await supabase.from('content_ideas').update({ status: 'drafted' }).eq('id', idea.id)
             totalDrafts++
           }
-        } catch (err) {
-          console.error(`ContentWriter: error writing draft for idea ${idea.id}:`, err)
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : 'Unknown error'
+          console.error(`ContentWriter: error writing draft for idea ${idea.id}:`, message)
         }
       }
-    } catch (err) {
-      console.error(`ContentWriter: error for brand ${brand.id}:`, err)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      console.error(`ContentWriter: error for brand ${brand.id}:`, message)
     }
   }
 

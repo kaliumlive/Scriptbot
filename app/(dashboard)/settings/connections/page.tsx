@@ -1,14 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import { OAUTH_CONFIGS } from '@/lib/platforms/oauth-config'
 import { CheckCircle2, ExternalLink, AlertCircle, ChevronDown } from 'lucide-react'
 
 export default async function ConnectionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; platform?: string; connected?: string }>
+  searchParams: Promise<{ error?: string; platform?: string; connected?: string; message?: string }>
 }) {
-  const { error: oauthError, platform: errorPlatform, connected } = await searchParams
+  const { error: oauthError, platform: errorPlatform, connected, message: errorMsg } = await searchParams
 
   const supabase = await createClient()
   // Auth disabled — fetch all brands
@@ -49,17 +48,33 @@ export default async function ConnectionsPage({
       {oauthError && (
         <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-6 text-sm text-red-400">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <div>
-            {oauthError === 'not_configured' ? (
-              <>
-                <span className="font-medium capitalize">{errorPlatform}</span> credentials are not configured.{' '}
-                <span className="text-zinc-500">See setup guide below.</span>
-              </>
-            ) : oauthError === 'token_exchange_failed' ? (
-              <>Token exchange failed for <span className="font-medium capitalize">{errorPlatform}</span>. Check your client secret.</>
-            ) : (
-              <>OAuth error: {oauthError}</>
-            )}
+          <div className="flex-1">
+            <p className="font-semibold mb-1">
+              {oauthError === 'not_configured' 
+                ? `${errorPlatform} Configuration Missing` 
+                : `${errorPlatform} Connection Error`}
+            </p>
+            <div className="opacity-80 space-y-2">
+              <p>
+                {oauthError === 'not_configured' ? (
+                  <>Credentials are not configured for this platform.</>
+                ) : (
+                  <>{errorMsg || 'An unexpected error occurred during the connection flow.'}</>
+                )}
+              </p>
+              
+              {errorPlatform === 'instagram' && oauthError === 'token_exchange_failed' && (
+                <div className="mt-4 pt-4 border-t border-red-500/10 space-y-2 text-xs">
+                  <p className="font-semibold text-red-300">How to fix this:</p>
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li>Ensure your Instagram is a <strong>Business</strong> or <strong>Creator</strong> account.</li>
+                    <li>Link your Instagram account to a <strong>Facebook Page</strong>.</li>
+                    <li>Make sure you have <strong>Administrator</strong> access to that Facebook Page.</li>
+                    <li>Check that the "Instagram Assets" are enabled in your Facebook Page settings.</li>
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

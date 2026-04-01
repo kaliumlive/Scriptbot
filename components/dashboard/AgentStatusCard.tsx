@@ -1,6 +1,6 @@
 'use client'
+import React, { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
 import { Play, Loader2 } from 'lucide-react'
 
 interface AgentLog {
@@ -28,8 +28,13 @@ export default function AgentStatusCard({
   lastRun,
   brandId,
 }: AgentStatusCardProps) {
+  const [mounted, setMounted] = useState(false)
   const [running, setRunning] = useState(false)
   const [runResult, setRunResult] = useState<'success' | 'error' | null>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const status = lastRun?.status ?? 'idle'
 
@@ -117,7 +122,7 @@ export default function AgentStatusCard({
             <span className="text-emerald-500">done ✓</span>
           ) : runResult === 'error' ? (
             <span className="text-red-500">failed</span>
-          ) : lastRun ? (
+          ) : lastRun && mounted ? (
             <span className={cn(
               status === 'complete' ? 'text-emerald-700' :
               status === 'failed' ? 'text-red-500' : 'text-amber-600'
@@ -126,6 +131,8 @@ export default function AgentStatusCard({
               {lastRun.duration_ms != null && ` · ${(lastRun.duration_ms / 1000).toFixed(1)}s`}
               {lastRun.items_processed != null && lastRun.items_processed > 0 && ` · ${lastRun.items_processed}`}
             </span>
+          ) : lastRun && !mounted ? (
+            <span className="text-zinc-800 opacity-0">loading…</span>
           ) : (
             <span className="text-zinc-800">never run</span>
           )}

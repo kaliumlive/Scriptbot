@@ -18,3 +18,10 @@ export async function generateWithGroq(
   const completion = await getGroq().chat.completions.create({ messages, model, temperature: 0.7, max_tokens: 4096 })
   return completion.choices[0]?.message?.content ?? ''
 }
+export async function chatWithGroq(
+  messages: Groq.Chat.ChatCompletionMessageParam[],
+  model: string = 'llama-3.3-70b-versatile'
+): Promise<string> {
+  const completion = await getGroq().chat.completions.create({ messages, model, temperature: 0.7, max_tokens: 2048 })
+  return completion.choices[0]?.message?.content ?? ''
+}

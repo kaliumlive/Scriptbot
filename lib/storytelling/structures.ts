@@ -6,6 +6,7 @@ export interface StoryStructure {
   stages: StoryStage[]
   example_topic?: string
   example_outline?: string[]
+  visual_theme?: string // General visual direction (e.g. "Gritty", "High-Energy Mographs", "Cinematic")
 }
 
 export interface StoryStage {
@@ -13,6 +14,7 @@ export interface StoryStage {
   purpose: string
   duration_pct: number // % of total video
   prompts: string[] // questions to help writer fill this stage
+  visual_guidance?: string // Guidance for the AV Storyboarder agent
 }
 
 export const STORY_STRUCTURES: StoryStructure[] = [
@@ -21,12 +23,13 @@ export const STORY_STRUCTURES: StoryStructure[] = [
     name: "Hero's Journey",
     description: "Classic transformation arc: normal world → challenge → struggle → breakthrough → new normal.",
     best_for: ['personal story', 'transformation', 'skill development', 'lesson learned'],
+    visual_theme: 'Cinematic storytelling with personal B-roll and emotional "movie scene" metaphors.',
     stages: [
-      { name: 'Normal World', purpose: 'Show your starting point — relatable, ordinary', duration_pct: 10, prompts: ['Where were you before this happened?', 'What was your default state?'] },
-      { name: 'The Call', purpose: 'The problem, challenge, or question that kicked everything off', duration_pct: 15, prompts: ['What disrupted the normal?', 'What forced you to act?'] },
-      { name: 'The Struggle', purpose: 'Resistance, attempts, failures — build tension', duration_pct: 30, prompts: ['What did you try that didn\'t work?', 'What was the hardest part?'] },
-      { name: 'The Breakthrough', purpose: 'The insight, discovery, or turning point', duration_pct: 20, prompts: ['What finally clicked?', 'What changed your approach?'] },
-      { name: 'New Normal', purpose: 'How you operate now — the practical takeaway', duration_pct: 20, prompts: ['What do you do differently now?', 'What\'s the actionable lesson?'] },
+      { name: 'Normal World', purpose: 'Show your starting point — relatable, ordinary', duration_pct: 10, prompts: ['Where were you before this happened?', 'What was your default state?'], visual_guidance: 'Static, relatable shots of your workspace or daily routine.' },
+      { name: 'The Call', purpose: 'The problem, challenge, or question that kicked everything off', duration_pct: 15, prompts: ['What disrupted the normal?', 'What forced you to act?'], visual_guidance: 'A sudden shift in music or a "record scratch" visual effect.' },
+      { name: 'The Struggle', purpose: 'Resistance, attempts, failures — build tension', duration_pct: 30, prompts: ['What did you try that didn\'t work?', 'What was the hardest part?'], visual_guidance: 'Fast-paced montage of "attempts" or an iconic movie scene showing a character struggling.' },
+      { name: 'The Breakthrough', purpose: 'The insight, discovery, or turning point', duration_pct: 20, prompts: ['What finally clicked?', 'What changed your approach?'], visual_guidance: 'Bright, high-contrast visuals or a "eureka" movie clip.' },
+      { name: 'New Normal', purpose: 'How you operate now — the practical takeaway', duration_pct: 20, prompts: ['What do you do differently now?', 'What\'s the actionable lesson?'], visual_guidance: 'Confident talking-head shots mixed with "after" results B-roll.' },
       { name: 'CTA (optional)', purpose: 'Only if it fits naturally', duration_pct: 5, prompts: ['Is there a resource, comment prompt, or action that adds value here?'] },
     ],
   },
@@ -48,11 +51,12 @@ export const STORY_STRUCTURES: StoryStructure[] = [
     name: 'The Lesson',
     description: "Teach one specific, actionable thing. Value-dense, educational.",
     best_for: ['tutorial', 'tip', 'technique', 'process breakdown'],
+    visual_theme: 'Clean, professional mographs mixed with direct screenshare or top-down hands-on shots.',
     stages: [
-      { name: 'The Problem Hook', purpose: 'Name the exact problem this lesson solves', duration_pct: 15, prompts: ['What frustration does this fix?', 'What\'s the pain before the lesson?'] },
-      { name: 'The Setup', purpose: 'Why most people approach this wrong', duration_pct: 20, prompts: ['What\'s the common mistake?', 'What do people misunderstand?'] },
-      { name: 'The Lesson', purpose: 'The actual technique — specific and actionable', duration_pct: 45, prompts: ['What exactly do you do?', 'What are the steps?', 'What\'s the nuance most tutorials miss?'] },
-      { name: 'The Result', purpose: 'Show the before/after or outcome', duration_pct: 15, prompts: ['What does success look like?', 'What changes when you apply this?'] },
+      { name: 'The Problem Hook', purpose: 'Name the exact problem this lesson solves', duration_pct: 15, prompts: ['What frustration does this fix?', 'What\'s the pain before the lesson?'], visual_guidance: 'Text-on-screen mograph of the "Pain Point".' },
+      { name: 'The Setup', purpose: 'Why most people approach this wrong', duration_pct: 20, prompts: ['What\'s the common mistake?', 'What do people misunderstand?'], visual_guidance: 'A "Stop" sign mograph or a famous movie scene showing a "wrong way" to do things.' },
+      { name: 'The Lesson', purpose: 'The actual technique — specific and actionable', duration_pct: 45, prompts: ['What exactly do you do?', 'What are the steps?', 'What\'s the nuance most tutorials miss?'], visual_guidance: 'Detailed screenshare, code snippets, or close-up B-roll of the action.' },
+      { name: 'The Result', purpose: 'Show the before/after or outcome', duration_pct: 15, prompts: ['What does success look like?', 'What changes when you apply this?'], visual_guidance: 'Split-screen "Before vs After" comparison.' },
       { name: 'CTA (optional)', purpose: 'Optional action', duration_pct: 5, prompts: ['Is there a follow-up resource?'] },
     ],
   },

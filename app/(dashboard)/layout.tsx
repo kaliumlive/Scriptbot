@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import {
   LayoutDashboard,
   Kanban,
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/ideate',    label: 'Ideate',    icon: Zap },
   { href: '/pipeline',  label: 'Pipeline',  icon: Kanban },
   { href: '/repurpose', label: 'Repurpose', icon: Video },
   { href: '/calendar',  label: 'Calendar',  icon: Calendar },
@@ -23,13 +24,16 @@ const navItems = [
   { href: '/settings/connections', label: 'Connect', icon: Settings },
 ]
 
+import AgentSidebar from '@/components/dashboard/AgentSidebar'
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const brandId = searchParams.get('brandId') || '253b5cdf-1bcc-4d59-973a-b51da740dfdb'
 
   return (
     <div className="flex min-h-screen bg-[#09090b]">
       <aside className="w-[200px] shrink-0 border-r border-white/[0.05] flex flex-col">
-
         {/* Logo */}
         <div className="h-[56px] flex items-center px-4 border-b border-white/[0.05]">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
@@ -83,6 +87,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       <main className="flex-1 overflow-auto min-w-0">{children}</main>
+
+      {/* Global Agency Sidebar */}
+      <AgentSidebar brandId={brandId} />
     </div>
   )
 }

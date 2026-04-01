@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Layers, ArrowRight } from 'lucide-react'
 import VideoUploader from '@/components/repurpose/VideoUploader'
 import CarouselPreview from '@/components/repurpose/CarouselPreview'
+import StoryboardPreview from '@/components/repurpose/StoryboardPreview'
 
 const YoutubeIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -60,8 +61,12 @@ export default async function RepurposePage() {
             <h2 className="text-sm font-bold text-zinc-300 uppercase tracking-wider">Recent Drafts</h2>
           </div>
           <div className="grid grid-cols-1 gap-4">
-            {drafts.map((draft: { id: string; [key: string]: any }) => (
-              <CarouselPreview key={draft.id} draft={draft} />
+            {drafts.map((draft: { id: string; storyboard?: any[]; [key: string]: any }) => (
+              draft.storyboard && draft.storyboard.length > 0 ? (
+                <StoryboardPreview key={draft.id} draft={draft} />
+              ) : (
+                <CarouselPreview key={draft.id} draft={draft} />
+              )
             ))}
           </div>
         </div>

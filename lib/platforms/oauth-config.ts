@@ -25,9 +25,12 @@ export const OAUTH_CONFIGS: Record<string, OAuthPlatformConfig> = {
     scopes: [
       'instagram_basic',
       'instagram_content_publish',
+      'instagram_manage_insights',
       'pages_show_list',
       'pages_read_engagement',
-      'public_profile'
+      'public_profile',
+      'instagram_manage_comments',
+      'instagram_manage_messages'
     ],
     scopeJoin: ',',
     color: 'from-pink-500 to-rose-500',

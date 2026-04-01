@@ -105,6 +105,78 @@ export async function postToInstagram(brandId: string, draftId: string) {
     }
 }
 
-export async function getInstagramMetrics() {
-    return { likes: 0, views: 0, shares: 0 }
+export async function getInstagramMetrics(brandId: string, platformPostId: string) {
+    const supabase = await createClient()
+
+    const { data: connection } = await supabase
+        .from('platform_connections')
+        .select('*')
+        .eq('brand_id', brandId)
+        .eq('platform', 'instagram')
+        .single()
+
+    if (!connection?.access_token) {
+        throw new Error('Instagram connection not found or expired.')
+    }
+
+    const accessToken = connection.access_token
+
+    try {
+        // Fetch standard engagement (likes, comments)
+        const mediaRes = await fetch(
+            `https://graph.facebook.com/v19.0/${platformPostId}?fields=like_count,comments_count,media_type&access_token=${accessToken}`
+        )
+        const mediaData = await mediaRes.json()
+        const isVideo = mediaData.media_type === 'VIDEO' || mediaData.media_type === 'REELS'
+
+        // Fetch insights (reach, impressions, shares, saves, plays/views)
+        // Note: For Reels, we use 'plays'. For standard video, we use 'video_views'.
+        const metricsToFetch = ['reach', 'impressions', 'saved']
+        if (isVideo) {
+            metricsToFetch.push('plays')
+            metricsToFetch.push('video_views')
+        }
+
+        const insightsRes = await fetch(
+            `https://graph.facebook.com/v19.0/${platformPostId}/insights?metric=${metricsToFetch.join(',')}&access_token=${accessToken}`
+        )
+        const insightsData = await insightsRes.json()
+
+        const metrics: Record<string, number> = {
+            likes: mediaData.like_count || 0,
+            comments: mediaData.comments_count || 0,
+            shares: 0, 
+            saves: 0,
+            reach: 0,
+            impressions: 0,
+            views: 0
+        }
+
+        if (insightsData.data) {
+            insightsData.data.forEach((m: { name: string; values: Array<{ value: number }> }) => {
+                const value = m.values?.[0]?.value || 0
+                if (m.name === 'reach') metrics.reach = value
+                if (m.name === 'impressions') metrics.impressions = value
+                if (m.name === 'saved') metrics.saves = value
+                if (m.name === 'video_views' || m.name === 'plays') {
+                    // Collect the highest view count
+                    metrics.views = Math.max(metrics.views, value)
+                }
+            })
+        }
+
+        return metrics
+    } catch (error) {
+        console.error('Error fetching IG metrics:', error)
+        // Return zeros instead of null to keep UI stable
+        return {
+            likes: 0,
+            comments: 0,
+            shares: 0,
+            saves: 0,
+            reach: 0,
+            impressions: 0,
+            views: 0
+        }
+    }
 }

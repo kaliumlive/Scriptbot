@@ -59,5 +59,15 @@ export async function createClient() {
         } catch { }
       },
     },
+    // Add custom fetch for better timeout handling and resilience
+    global: {
+      fetch: (url, options) => {
+        return fetch(url, {
+          ...options,
+          // Use a reasonable timeout for server-side auth checks
+          signal: AbortSignal.timeout(10000),
+        })
+      },
+    },
   })
 }

@@ -115,27 +115,41 @@ export function createCallbackHandler(platform: string) {
         const pagesData = await pagesRes.json()
         
         if (pagesData.data && pagesData.data.length > 0) {
+          console.log(`[Instagram OAuth] Found ${pagesData.data.length} Facebook Pages. Searching for linked IG Business Account...`)
           // Find the first page that has an instagram_business_account
           for (const page of pagesData.data) {
             const igRes = await fetch(
-              `https://graph.facebook.com/v19.0/${page.id}?fields=instagram_business_account&access_token=${accessToken}`
+              `https://graph.facebook.com/v19.0/${page.id}?fields=instagram_business_account,name&access_token=${accessToken}`
             )
             const igData = await igRes.json()
+            console.log(`[Instagram OAuth] Checking Page "${igData.name}" (${page.id})...`)
+            
             if (igData.instagram_business_account) {
               instagramBusinessId = igData.instagram_business_account.id
               pageId = page.id
+              console.log(`[Instagram OAuth] Found linked IG Business ID: ${instagramBusinessId}`)
               break
+            } else {
+              console.log(`[Instagram OAuth] Page "${igData.name}" has no linked Instagram Business Account.`)
             }
           }
+        } else {
+          console.error('[Instagram OAuth] No Facebook Pages found for this user.')
         }
 
         if (!instagramBusinessId) {
-          throw new Error('No Instagram Business Account linked to the selected Facebook Page.')
+          interface FacebookPage { id: string; name: string }
+          console.error('[Instagram OAuth] No Business Account found for pages:', pagesData.data?.map((p: FacebookPage) => `${p.name} (${p.id})`))
+          throw new Error('No Instagram Business Account linked to the selected Facebook Page. Please ensure your Instagram account is a Professional account (Business or Creator) and linked to a Facebook Page.')
         }
+
+        console.log('[Instagram OAuth] Successfully matched IG Business ID:', instagramBusinessId)
       }
 
+      console.log(`[OAuth] Finalizing ${platform} connection for brand:`, brandId)
       const supabase = await createClient()
-      await supabase.from('platform_connections').upsert({
+      
+      const { error: upsertError } = await supabase.from('platform_connections').upsert({
         brand_id: brandId,
         platform,
         access_token: accessToken,
@@ -148,6 +162,13 @@ export function createCallbackHandler(platform: string) {
         is_active: true,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'brand_id,platform' })
+
+      if (upsertError) {
+        console.error('[OAuth] Supabase Upsert Error:', upsertError)
+        throw new Error(`Failed to save connection: ${upsertError.message}`)
+      }
+
+      console.log(`[OAuth] Successfully connected ${platform}`)
 
       const url = new URL('/settings/connections', appUrl)
       url.searchParams.set('connected', platform)
