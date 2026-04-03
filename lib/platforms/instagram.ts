@@ -51,17 +51,17 @@ export async function importInstagramPublishedPosts(brandId: string, limit: numb
         }).toString()
 
     while (nextUrl && collected.length < limit) {
-        const response = await fetch(nextUrl)
-        const payload = await response.json()
+        const response: Response = await fetch(nextUrl)
+        const payload = await response.json() as { data?: InstagramMediaItem[]; paging?: { next?: string } }
 
         if (!response.ok) {
             throw new Error(`Instagram media import failed: ${JSON.stringify(payload)}`)
         }
 
-        const items = (payload.data as InstagramMediaItem[] | undefined) ?? []
+        const items = payload.data ?? []
         collected.push(...items)
 
-        const next = payload.paging?.next
+        const next: string | undefined = payload.paging?.next
         nextUrl = typeof next === 'string' && collected.length < limit ? next : null
     }
 

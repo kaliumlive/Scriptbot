@@ -64,7 +64,7 @@ export async function downloadAndExtractVideo(
 
         resolve({ framesDir: tmpDir, frames })
       })
-      .on('error', (err) => {
+      .on('error', (err: Error) => {
         reject(err)
       })
       .run()
