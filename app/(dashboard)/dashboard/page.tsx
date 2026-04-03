@@ -17,11 +17,10 @@ const AGENTS = [
 ]
 
 const FLOW = [
-  { label: 'Trends',   agent: 'Scout',     from: 'bg-sky-500/10',     text: 'text-sky-400',     border: 'border-sky-500/20' },
-  { label: 'Ideas',    agent: 'Generator', from: 'bg-violet-500/10',  text: 'text-violet-400',  border: 'border-violet-500/20' },
-  { label: 'Copy',     agent: 'Writer',    from: 'bg-fuchsia-500/10', text: 'text-fuchsia-400', border: 'border-fuchsia-500/20' },
-  { label: 'Queue',    agent: 'Scheduler', from: 'bg-amber-500/10',   text: 'text-amber-400',   border: 'border-amber-500/20' },
-  { label: 'Posted',   agent: 'Publisher', from: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+  { label: 'Trends', agent: 'Scout',     from: 'bg-sky-500/10',     text: 'text-sky-400',     border: 'border-sky-500/20' },
+  { label: 'Ideas',  agent: 'Generator', from: 'bg-violet-500/10',  text: 'text-violet-400',  border: 'border-violet-500/20' },
+  { label: 'Copy',   agent: 'Writer',    from: 'bg-fuchsia-500/10', text: 'text-fuchsia-400', border: 'border-fuchsia-500/20' },
+  { label: 'Post',   agent: 'You →',     from: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
 ]
 
 export default async function DashboardPage() {
