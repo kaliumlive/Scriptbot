@@ -98,7 +98,7 @@ export default function KanbanBoard({ brandId, ideas, drafts, approved, publishe
             {col.key === 'approved' && (approved as ContentDraft[]).map(item => (
               <div key={item.id} className="rounded-xl p-3.5 border border-violet-500/20 bg-violet-500/[0.04]">
                 <p className="text-sm text-zinc-200 leading-snug font-medium">{item.title || CONTENT_TYPE_LABELS[item.content_type] || item.content_type}</p>
-                <span className="inline-block text-[10px] text-violet-400/70 bg-violet-500/10 border border-violet-500/20 rounded px-1.5 py-0.5 mt-2">ready to schedule</span>
+                <span className="inline-block text-[10px] text-violet-400/70 bg-violet-500/10 border border-violet-500/20 rounded px-1.5 py-0.5 mt-2">ready to post</span>
               </div>
             ))}
 

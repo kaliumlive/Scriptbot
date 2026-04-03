@@ -3,7 +3,7 @@ import Link from 'next/link'
 import AgentStatusCard from '@/components/dashboard/AgentStatusCard'
 import RunAllAgentsButton from '@/components/dashboard/RunAllAgentsButton'
 import {
-  TrendingUp, FileText, Clock, CheckCircle2,
+  TrendingUp, FileText, CheckCircle2,
   ArrowRight, ChevronRight, Wifi
 } from 'lucide-react'
 
@@ -13,8 +13,6 @@ const AGENTS = [
   { name: 'Content Writer',   key: 'content-writer',   frequency: 'Daily 8AM', description: 'Writes copy in your voice' },
   { name: 'Voice Learner',    key: 'voice-learner',    frequency: 'On demand', description: 'Learns your style from videos' },
   { name: 'Video Repurposer', key: 'video-repurposer', frequency: 'On demand', description: 'Video → carousels + captions' },
-  { name: 'Scheduler',        key: 'scheduler',        frequency: 'Daily 8AM', description: 'Queues posts at optimal times' },
-  { name: 'Publisher',        key: 'publisher',        frequency: 'Hourly',    description: 'Posts to all platforms' },
   { name: 'Analytics',        key: 'analytics',        frequency: 'Weekly',    description: 'Surfaces performance insights' },
 ]
 
@@ -34,18 +32,16 @@ export default async function DashboardPage() {
   const hasBrand = brandIds.length > 0
   const brand = brands?.[0]
 
-  let stats = { ideas: 0, drafts: 0, scheduled: 0, published: 0 }
+  let stats = { ideas: 0, drafts: 0, published: 0 }
   if (hasBrand) {
-    const [ideas, drafts, scheduled, published] = await Promise.all([
+    const [ideas, drafts, published] = await Promise.all([
       supabase.from('content_ideas').select('id', { count: 'exact', head: true }).in('brand_id', brandIds).eq('status', 'idea'),
       supabase.from('content_drafts').select('id', { count: 'exact', head: true }).in('brand_id', brandIds).eq('status', 'draft'),
-      supabase.from('scheduled_posts').select('id', { count: 'exact', head: true }).in('brand_id', brandIds).eq('status', 'scheduled'),
       supabase.from('published_posts').select('id', { count: 'exact', head: true }).in('brand_id', brandIds),
     ])
     stats = {
       ideas: ideas.count ?? 0,
       drafts: drafts.count ?? 0,
-      scheduled: scheduled.count ?? 0,
       published: published.count ?? 0,
     }
   }
@@ -151,11 +147,10 @@ export default async function DashboardPage() {
         </div>
 
         {/* ── Stats ── */}
-        <div className="grid grid-cols-4 gap-3 mb-7">
+        <div className="grid grid-cols-3 gap-3 mb-7">
           {[
             { label: 'Ideas',     value: stats.ideas,     icon: TrendingUp,   accent: 'text-sky-400',     bg: 'bg-sky-500/10',     ring: 'border-sky-500/20',     href: '/pipeline' },
             { label: 'Drafts',    value: stats.drafts,    icon: FileText,     accent: 'text-violet-400',  bg: 'bg-violet-500/10',  ring: 'border-violet-500/20',  href: '/pipeline' },
-            { label: 'Scheduled', value: stats.scheduled, icon: Clock,        accent: 'text-amber-400',   bg: 'bg-amber-500/10',   ring: 'border-amber-500/20',   href: '/calendar' },
             { label: 'Published', value: stats.published, icon: CheckCircle2, accent: 'text-emerald-400', bg: 'bg-emerald-500/10', ring: 'border-emerald-500/20', href: '/analytics' },
           ].map(stat => (
             <Link key={stat.label} href={stat.href} className="block group cursor-pointer">
@@ -180,7 +175,7 @@ export default async function DashboardPage() {
             <p className="text-[10px] font-semibold text-zinc-700 uppercase tracking-widest">Agents</p>
             <span className="text-[10px] text-zinc-800">hover any card to run manually</span>
           </div>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {AGENTS.map(agent => (
               <AgentStatusCard
                 key={agent.key}

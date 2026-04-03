@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 interface ImportResult {
@@ -10,13 +9,9 @@ interface YouTubePlaylistItem {
     snippet?: {
         title?: string
         publishedAt?: string
-        resourceId?: {
-            videoId?: string
-        }
+        resourceId?: { videoId?: string }
     }
-    contentDetails?: {
-        videoPublishedAt?: string
-    }
+    contentDetails?: { videoPublishedAt?: string }
 }
 
 export async function importYouTubePublishedPosts(brandId: string, limit: number = 100): Promise<ImportResult> {
@@ -40,10 +35,7 @@ export async function importYouTubePublishedPosts(brandId: string, limit: number
     }
 
     const channelsRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=contentDetails&mine=true', {
-        headers: {
-            Authorization: `Bearer ${accessToken}`,
-            Accept: 'application/json',
-        },
+        headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
     })
     const channelsData = await channelsRes.json()
 
@@ -52,9 +44,7 @@ export async function importYouTubePublishedPosts(brandId: string, limit: number
     }
 
     const uploadsPlaylistId = channelsData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads
-    if (!uploadsPlaylistId) {
-        return { importedPosts: 0, scannedPosts: 0 }
-    }
+    if (!uploadsPlaylistId) return { importedPosts: 0, scannedPosts: 0 }
 
     const existingResult = await supabase
         .from('published_posts')
@@ -62,7 +52,11 @@ export async function importYouTubePublishedPosts(brandId: string, limit: number
         .eq('brand_id', brandId)
         .eq('platform', 'youtube')
 
-    const existingIds = new Set((existingResult.data ?? []).map((row: { platform_post_id: string | null }) => row.platform_post_id).filter(Boolean))
+    const existingIds = new Set(
+        (existingResult.data ?? [])
+            .map((row: { platform_post_id: string | null }) => row.platform_post_id)
+            .filter(Boolean)
+    )
 
     const collected: YouTubePlaylistItem[] = []
     let pageToken = ''
@@ -73,38 +67,26 @@ export async function importYouTubePublishedPosts(brandId: string, limit: number
             playlistId: uploadsPlaylistId,
             maxResults: String(Math.min(50, limit - collected.length)),
         })
-        if (pageToken) {
-            params.set('pageToken', pageToken)
-        }
+        if (pageToken) params.set('pageToken', pageToken)
 
         const response = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?${params.toString()}`, {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                Accept: 'application/json',
-            },
+            headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
         })
         const payload = await response.json()
 
-        if (!response.ok) {
-            throw new Error(`YouTube playlist import failed: ${JSON.stringify(payload)}`)
-        }
+        if (!response.ok) throw new Error(`YouTube playlist import failed: ${JSON.stringify(payload)}`)
 
         const items = (payload.items as YouTubePlaylistItem[] | undefined) ?? []
         collected.push(...items)
 
         pageToken = payload.nextPageToken ?? ''
-        if (!pageToken) {
-            break
-        }
+        if (!pageToken) break
     }
 
     const rowsToInsert = collected
         .map((item) => {
             const videoId = item.snippet?.resourceId?.videoId
-            if (!videoId || existingIds.has(videoId)) {
-                return null
-            }
-
+            if (!videoId || existingIds.has(videoId)) return null
             return {
                 brand_id: brandId,
                 platform: 'youtube',
@@ -117,43 +99,10 @@ export async function importYouTubePublishedPosts(brandId: string, limit: number
 
     if (rowsToInsert.length > 0) {
         const { error } = await supabase.from('published_posts').insert(rowsToInsert)
-        if (error) {
-            throw new Error(`Failed to save imported YouTube posts: ${error.message}`)
-        }
+        if (error) throw new Error(`Failed to save imported YouTube posts: ${error.message}`)
     }
 
-    return {
-        importedPosts: rowsToInsert.length,
-        scannedPosts: collected.length,
-    }
-}
-
-export async function postToYouTube(brandId: string, draftId: string) {
-    const supabase = await createClient()
-
-    const { data: connection, error } = await supabase
-        .from('platform_connections')
-        .select('*')
-        .eq('brand_id', brandId)
-        .eq('platform', 'youtube')
-        .single()
-
-    if (error || !connection) throw new Error('YouTube connection not found')
-
-    if (new Date(connection.token_expires_at) < new Date()) {
-        await refreshYouTubeToken(connection.refresh_token, brandId)
-    }
-
-    const { data: draft } = await supabase
-        .from('content_drafts')
-        .select('*')
-        .eq('id', draftId)
-        .single()
-
-    if (!draft) throw new Error('Draft not found')
-
-    console.log(`Uploading to YouTube for brand ${brandId}: ${draft.title}`)
-    throw new Error('YouTube publishing is not implemented yet. Complete the upload workflow before enabling the publisher.')
+    return { importedPosts: rowsToInsert.length, scannedPosts: collected.length }
 }
 
 async function refreshYouTubeToken(refreshToken: string, brandId: string) {
@@ -170,7 +119,7 @@ async function refreshYouTubeToken(refreshToken: string, brandId: string) {
     const tokens = await response.json()
     if (!response.ok) throw new Error('Failed to refresh YouTube token')
 
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     await supabase
         .from('platform_connections')
         .update({
@@ -184,7 +133,7 @@ async function refreshYouTubeToken(refreshToken: string, brandId: string) {
 }
 
 export async function getYouTubeMetrics(brandId: string, platformPostId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     const { data: connection } = await supabase
         .from('platform_connections')
@@ -199,44 +148,28 @@ export async function getYouTubeMetrics(brandId: string, platformPostId: string)
 
     let accessToken = connection.access_token
     if (new Date(connection.token_expires_at) < new Date()) {
-        try {
-            accessToken = await refreshYouTubeToken(connection.refresh_token, brandId)
-        } catch (e) {
-            console.error('YouTube refresh token failed:', e)
-            throw e
-        }
+        try { accessToken = await refreshYouTubeToken(connection.refresh_token, brandId) }
+        catch (e) { console.error('YouTube refresh token failed:', e); throw e }
     }
 
     try {
         const res = await fetch(`https://youtube.googleapis.com/youtube/v3/videos?part=statistics&id=${platformPostId}`, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Accept': 'application/json'
-            }
+            headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
         })
-        
         const data = await res.json()
         const stats = data.items?.[0]?.statistics
 
         return {
             likes: parseInt(stats?.likeCount || '0', 10),
             comments: parseInt(stats?.commentCount || '0', 10),
-            shares: 0, 
+            shares: 0,
             saves: parseInt(stats?.favoriteCount || '0', 10),
-            reach: 0, 
-            impressions: 0, 
-            views: parseInt(stats?.viewCount || '0', 10)
+            reach: 0,
+            impressions: 0,
+            views: parseInt(stats?.viewCount || '0', 10),
         }
     } catch (error) {
         console.error('Error fetching YouTube metrics:', error)
-        return {
-            likes: 0,
-            comments: 0,
-            shares: 0,
-            saves: 0,
-            reach: 0,
-            impressions: 0,
-            views: 0
-        }
+        return { likes: 0, comments: 0, shares: 0, saves: 0, reach: 0, impressions: 0, views: 0 }
     }
 }

@@ -46,11 +46,11 @@ export const OAUTH_CONFIGS: Record<string, OAuthPlatformConfig> = {
     envClientSecret: 'TIKTOK_CLIENT_SECRET',
     authUrl: 'https://www.tiktok.com/v2/auth/authorize',
     tokenUrl: 'https://open.tiktokapis.com/v2/oauth/token/',
-    scopes: ['user.info.basic', 'video.upload', 'video.publish'],
+    scopes: ['user.info.basic', 'video.list'],
     scopeJoin: ',',
     color: 'from-zinc-100 to-zinc-300',
     badge: 'TT',
-    note: 'Content posting API',
+    note: 'Read-only analytics',
     setupGuide: [
       { envVar: 'TIKTOK_CLIENT_ID', where: 'TikTok Developer Portal → App Detail → Client Key' },
       { envVar: 'TIKTOK_CLIENT_SECRET', where: 'TikTok Developer Portal → App Detail → Client Secret' },

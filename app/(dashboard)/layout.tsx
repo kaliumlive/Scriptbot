@@ -19,7 +19,7 @@ const navItems = [
   { href: '/ideate',    label: 'Ideate',    icon: Zap },
   { href: '/pipeline',  label: 'Pipeline',  icon: Kanban },
   { href: '/repurpose', label: 'Repurpose', icon: Video },
-  { href: '/calendar',  label: 'Calendar',  icon: Calendar },
+  { href: '/calendar',  label: 'History',   icon: Calendar },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/brands',    label: 'Brand',     icon: User },
   { href: '/settings/connections', label: 'Connect', icon: Settings },
