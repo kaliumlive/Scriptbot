@@ -17,12 +17,16 @@
 ## Milestone 2: Agentic Intelligence (Revised)
 **Goal**: Replace a full content team with an agentic storyboarder and ideator.
 
-### Phase 3: The Ideation Agent
-- [ ] **Feature**: "Flesh out my ideas" - Input a single concept and let agents find hooks, angles, and sources.
-- [ ] **Feature**: "I don't have any ideas" - Scrape niche viral trends and suggest candidate concepts.
+### Phase 3: The Ideation Agent (COMPLETE)
+- [x] Flesh out my ideas endpoint dynamic brandId integration
+- [x] I don't have any ideas dynamic brandId integration
 
-### Phase 4: Audio-Visual Storyboarder
-- [ ] **Feature**: Interactive Frame-by-Frame View for each script beat.
+## Milestone 2: Intelligent Fulfillment
+**Goal**: Completely automate the conversion of raw video streams into scheduled, multi-platform assets.
+
+### Phase 4: Audio-Visual Storyboarder (COMPLETE)
+- [x] Implement YouTube/TikTok link extraction to frames.
+- [x] Connect Claude Vision or Gemini Pro Vision to tag frames based on the script's `b_roll_notes`.
 - [ ] **Feature**: Suggest mographs, iconic movie scenes, and B-roll cues.
 - [ ] **Feature**: YouTube scene search agent for movie/b-roll visual references.
 

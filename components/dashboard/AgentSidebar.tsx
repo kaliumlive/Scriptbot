@@ -66,7 +66,7 @@ export default function AgentSidebar({ brandId }: { brandId: string }) {
         setIsTyping(true)
 
         try {
-            const res = await fetch('/api/agency-lead/chat', {
+            const res = await fetch('/api/agency-lead', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

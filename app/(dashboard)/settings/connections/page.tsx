@@ -34,7 +34,21 @@ export default async function ConnectionsPage({
     <div className="p-8 max-w-2xl mx-auto">
       <div className="mb-8">
         <h1 className="text-xl font-semibold text-zinc-50 tracking-tight">Connections</h1>
-        <p className="text-zinc-500 text-sm mt-1">Link your social accounts so agents can post on your behalf</p>
+        <p className="text-zinc-500 text-sm mt-1">Link your social accounts to enable autonomous analytics retrieval</p>
+      </div>
+
+      {/* Analytics Scope Warning */}
+      <div className="flex items-start gap-3 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-5 mb-8 ring-1 ring-indigo-500/30">
+        <AlertCircle className="w-6 h-6 text-indigo-400 shrink-0 mt-0.5" />
+        <div>
+          <h4 className="text-sm font-black text-indigo-300 mb-1.5 uppercase tracking-[0.1em]">Important: Read-Only Analytics</h4>
+          <p className="text-xs text-indigo-100/90 leading-relaxed font-medium">
+            Platform integrations are currently <strong>Read-Only</strong>. 
+            Scriptbot retrieves your performance metrics to power your dashboard, but it 
+            <strong> does not have permission to post content</strong> or access private 
+            messages on your behalf. All publishing must be handled manually from your drafts.
+          </p>
+        </div>
       </div>
 
       {/* OAuth success toast */}
@@ -71,7 +85,7 @@ export default async function ConnectionsPage({
                     <li>Ensure your Instagram is a <strong>Business</strong> or <strong>Creator</strong> account.</li>
                     <li>Link your Instagram account to a <strong>Facebook Page</strong>.</li>
                     <li>Make sure you have <strong>Administrator</strong> access to that Facebook Page.</li>
-                    <li>Check that the "Instagram Assets" are enabled in your Facebook Page settings.</li>
+                    <li>Check that the &quot;Instagram Assets&quot; are enabled in your Facebook Page settings.</li>
                   </ul>
                 </div>
               )}

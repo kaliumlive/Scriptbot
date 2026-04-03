@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS brands (
   color_palette JSONB DEFAULT '[]',
   logo_url TEXT,
   competitor_handles JSONB DEFAULT '[]',
-  platforms JSONB DEFAULT '["instagram","tiktok","twitter","linkedin","youtube"]',
+  platforms JSONB DEFAULT '["instagram","tiktok","twitter","youtube"]',
   audience_timezone TEXT DEFAULT 'UTC',
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),

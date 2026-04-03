@@ -17,13 +17,6 @@ const CONFIGS: Record<string, PlatformOAuthConfig> = {
         tokenUrl: 'https://oauth2.googleapis.com/token',
         scopes: ['https://www.googleapis.com/auth/youtube.upload', 'https://www.googleapis.com/auth/youtube.readonly'],
     },
-    linkedin: {
-        clientId: process.env.LINKEDIN_CLIENT_ID || '',
-        clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
-        authUrl: 'https://www.linkedin.com/oauth/v2/authorization',
-        tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
-        scopes: ['w_member_social', 'r_liteprofile'],
-    },
     // Add other platforms as needed
 }
 

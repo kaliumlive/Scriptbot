@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import { Calendar, Clock } from 'lucide-react'
 
 export default async function CalendarPage() {

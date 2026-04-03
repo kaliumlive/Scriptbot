@@ -24,7 +24,7 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
 const PLATFORM_COLORS: Record<string, string> = {
   instagram: 'text-pink-400', tiktok: 'text-zinc-300',
   twitter: 'text-sky-400', x: 'text-sky-400',
-  youtube: 'text-red-400', linkedin: 'text-blue-400',
+  youtube: 'text-red-400',
 }
 
 export default function KanbanBoard({ brandId, ideas, drafts, approved, published }: KanbanBoardProps) {

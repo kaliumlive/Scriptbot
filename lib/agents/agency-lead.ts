@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { chatWithGroq } from '../ai/groq'
+import type Groq from 'groq-sdk'
 
 export interface AgencyContext {
     brandName: string
@@ -82,13 +83,13 @@ export async function chatWithAgencyLead(brandId: string, message: string, histo
     5. You are the "Boss" and "Partner" to the creator.
     `
 
-    const messages = [
+    const messages: Groq.Chat.ChatCompletionMessageParam[] = [
         { role: 'system', content: systemPrompt },
         ...history,
         { role: 'user', content: message }
     ]
 
-    const response = await chatWithGroq(messages as any)
+    const response = await chatWithGroq(messages)
 
     return response
 }

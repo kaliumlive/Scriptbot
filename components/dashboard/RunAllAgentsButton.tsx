@@ -38,6 +38,7 @@ export default function RunAllAgentsButton({ brandId }: { brandId: string }) {
     <button
       onClick={handleRunAll}
       disabled={state === 'running'}
+      data-testid="run-pipeline-button"
       className={cn(
         'flex items-center gap-2 text-xs font-semibold px-3.5 py-2 rounded-lg border transition-all duration-150 cursor-pointer',
         state === 'idle'

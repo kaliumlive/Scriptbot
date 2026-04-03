@@ -22,6 +22,9 @@ interface PerformanceDashboardProps {
         totalEngagement: number
         totalPosts: number
         growthRate: number
+        reachTrend: number
+        engagementTrend: number
+        postTrend: number
     }
     recentPosts: PostMetric[]
     aiInsight?: string
@@ -33,10 +36,10 @@ export default function PerformanceDashboard({ stats, recentPosts, aiInsight }: 
             {/* Top Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {[
-                    { label: 'Total Reach', value: stats.totalReach.toLocaleString(), icon: Eye, color: 'text-blue-400', trend: '+12.4%', up: true },
-                    { label: 'Engagement', value: stats.totalEngagement.toLocaleString(), icon: Heart, color: 'text-rose-400', trend: '+8.2%', up: true },
-                    { label: 'Growth Rate', value: `${stats.growthRate}%`, icon: TrendingUp, color: 'text-emerald-400', trend: '+2.1%', up: true },
-                    { label: 'Total Posts', value: stats.totalPosts.toString(), icon: BarChart3, color: 'text-amber-400', trend: '0%', up: true },
+                    { label: 'Total Reach', value: stats.totalReach.toLocaleString(), icon: Eye, color: 'text-blue-400', trend: `${stats.reachTrend >= 0 ? '+' : ''}${stats.reachTrend}%`, up: stats.reachTrend >= 0 },
+                    { label: 'Engagement', value: stats.totalEngagement.toLocaleString(), icon: Heart, color: 'text-rose-400', trend: `${stats.engagementTrend >= 0 ? '+' : ''}${stats.engagementTrend}%`, up: stats.engagementTrend >= 0 },
+                    { label: 'Growth Rate', value: `${stats.growthRate}%`, icon: TrendingUp, color: 'text-emerald-400', trend: `${stats.growthRate >= 0 ? '+' : ''}${stats.growthRate}%`, up: stats.growthRate >= 0 },
+                    { label: 'Total Posts', value: stats.totalPosts.toString(), icon: BarChart3, color: 'text-amber-400', trend: `${stats.postTrend >= 0 ? '+' : ''}${stats.postTrend}%`, up: stats.postTrend >= 0 },
                 ].map((stat, i) => (
                     <motion.div
                         key={stat.label}
@@ -110,7 +113,12 @@ export default function PerformanceDashboard({ stats, recentPosts, aiInsight }: 
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400 capitalize border border-zinc-700">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold capitalize border ${
+                                            post.platform === 'youtube' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                            post.platform === 'instagram' ? 'bg-pink-500/10 text-pink-400 border-pink-500/20' :
+                                            post.platform === 'tiktok' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
+                                            'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                        }`}>
                                             {post.platform}
                                         </span>
                                     </td>

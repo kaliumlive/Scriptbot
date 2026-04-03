@@ -1,13 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { postToYouTube } from '../platforms/youtube'
-import { postToLinkedIn } from '../platforms/linkedin'
 import { postToInstagram } from '../platforms/instagram'
 import { postToTikTok } from '../platforms/tiktok'
 import { postToTwitter } from '../platforms/twitter'
 
 const PLATFORM_PUBLISHERS = {
     youtube: postToYouTube,
-    linkedin: postToLinkedIn,
     instagram: postToInstagram,
     tiktok: postToTikTok,
     twitter: postToTwitter,
@@ -36,7 +34,9 @@ export async function runPublisher(brandId?: string) {
             const publishFn = PLATFORM_PUBLISHERS[post.platform as keyof typeof PLATFORM_PUBLISHERS]
             if (!publishFn) throw new Error(`Publisher for ${post.platform} not implemented`)
 
-            const result = await publishFn(post.brand_id, post.draft_id)
+            const result = await publishFn(post.brand_id, post.draft_id) as { platform_post_id: string; platform_post_url: string } | undefined
+
+            if (!result) throw new Error(`Publisher for ${post.platform} returned no result`)
 
             // 2. Mark as published
             await supabase.from('scheduled_posts').update({ status: 'published' }).eq('id', post.id)

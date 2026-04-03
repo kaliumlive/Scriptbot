@@ -9,6 +9,14 @@
 
 import { generateWithGroq } from '@/lib/ai/groq'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { parseLLMJson } from '@/lib/utils'
+
+interface TrendItem {
+  topic: string
+  angle: string
+  format: string
+  why_trending: string
+}
 
 export async function runTrendScout(brandId?: string): Promise<{
   brandsProcessed: number
@@ -35,53 +43,26 @@ export async function runTrendScout(brandId?: string): Promise<{
     const platforms = (brand.platforms as string[]) ?? ['instagram', 'tiktok', 'youtube']
     const niche = brand.niche ?? 'music production'
 
-    for (const platform of platforms.slice(0, 3)) {
+    for (const platform of platforms) {
       try {
-        const prompt = `What are the top 5 trending content topics and formats for ${niche} creators on ${platform} in ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}?
+        const prompt = `Analyze the current state of ${platform} for ${niche} creators in ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
+Identify the top 5 trending content topics, psychological triggers, or specific formats that are currently viral or high-growth.
 
 For each trend return:
-- topic: the trend title
-- angle: the specific angle that's working
-- format: content format (short_video, carousel, live, etc.)
-- why_trending: 1 sentence on why this is resonating
+- topic: clear, descriptive title
+- angle: the specific perspective or "hook" that's working right now
+- format: the visual format (e.g., short_video, photo_carousel, long_form, live_stream)
+- why_trending: 1-2 sentences on the audience psychology or algorithm shift driving this.
 
-Return ONLY a JSON array, no markdown:
+Return ONLY a JSON array:
 [{"topic":"...","angle":"...","format":"...","why_trending":"..."}]`
 
         const rawText = await generateWithGroq(prompt)
-
-        let trends: Array<{topic: string; angle: string; format: string; why_trending: string}> = []
-        try {
-          const clean = rawText
-            .replace(/```(?:json)?/g, '')
-            .replace(/```/g, '')
-            .trim()
-          
-          const start = clean.indexOf('[')
-          const end = clean.lastIndexOf(']')
-          
-          if (start !== -1 && end !== -1) {
-            trends = JSON.parse(clean.substring(start, end + 1))
-          } else {
-            trends = JSON.parse(clean)
-          }
-        } catch (err) {
-          console.error(`TrendScout: parse error for ${platform}:`, err)
-          // Fallback: try to find anything that looks like an array
-          const match = rawText.match(/\[[\s\S]*\]/)
-          if (match) {
-            try {
-              trends = JSON.parse(match[0])
-            } catch {
-              throw new Error(`Parse failed for ${platform}. Raw: ${rawText.slice(0, 100)}...`)
-            }
-          } else {
-            throw new Error(`No JSON array found in response for ${platform}`)
-          }
-        }
+        const trends = parseLLMJson<TrendItem[]>(rawText)
 
         if (!Array.isArray(trends) || trends.length === 0) {
-          throw new Error(`Invalid trend data for ${platform}: expected non-empty array`)
+          console.error(`TrendScout: Invalid data for ${platform}`, rawText)
+          continue
         }
 
         const { error: insertError } = await supabase.from('trend_reports').insert({
@@ -92,10 +73,14 @@ Return ONLY a JSON array, no markdown:
           report_date: new Date().toISOString().split('T')[0],
         })
 
-        if (insertError) throw new Error(`Insert failed: ${insertError.message}`)
+        if (insertError) {
+          console.error(`TrendScout: Insert failed for ${platform}: ${insertError.message}`)
+          continue
+        }
         totalReports++
       } catch (err) {
-        return { brandsProcessed: 0, reportsCreated: 0, error: String(err) }
+        console.error(`TrendScout: Error processing ${platform} for brand ${brand.id}:`, err)
+        continue
       }
     }
   }

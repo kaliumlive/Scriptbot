@@ -5,8 +5,27 @@ import { Clapperboard, Send, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Storyboarder from '@/components/dashboard/Storyboarder'
 
+interface StoryboardBeat {
+  text: string
+  visual: string
+  style: 'cinematic' | 'mograph' | 'talking-head' | 'movie-clip'
+  movie_reference?: string
+  youtube_search_query?: string
+  audio_cue?: string
+  duration: number
+}
+
 interface StoryboardPreviewProps {
-  draft: any
+  draft: {
+    id: string
+    brand_id: string
+    title?: string | null
+    content_type?: string | null
+    status: string
+    script?: string | null
+    storyboard?: StoryboardBeat[] | null
+    platform_captions?: Record<string, string> | null
+  }
 }
 
 export default function StoryboardPreview({ draft }: StoryboardPreviewProps) {
@@ -17,14 +36,15 @@ export default function StoryboardPreview({ draft }: StoryboardPreviewProps) {
   const handleApprove = async () => {
     setIsApproving(true)
     try {
-      await fetch('/api/run-agent', {
+      const response = await fetch('/api/run-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          agentType: 'scheduler',
-          data: { brandId: draft.brand_id }
+          agent: 'scheduler',
+          brandId: draft.brand_id
         })
       })
+      if (!response.ok) throw new Error('Failed to run scheduler')
       setIsApproved(true)
     } finally {
       setIsApproving(false)
@@ -32,7 +52,7 @@ export default function StoryboardPreview({ draft }: StoryboardPreviewProps) {
   }
 
   const storyboard = draft.storyboard || []
-  const totalDuration = storyboard.reduce((acc: number, b: any) => acc + (b.duration || 0), 0)
+  const totalDuration = storyboard.reduce((acc, beat) => acc + (beat.duration || 0), 0)
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl transition-all">
@@ -76,6 +96,43 @@ export default function StoryboardPreview({ draft }: StoryboardPreviewProps) {
              
              <Storyboarder beats={storyboard} />
              
+             {draft.platform_captions && Object.keys(draft.platform_captions).length > 0 && (
+               <div className="pt-6 border-t border-zinc-800/50">
+                 <h4 className="text-[10px] text-zinc-500 uppercase font-black tracking-[0.2em] mb-4">Platform Captions</h4>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   {Object.entries(draft.platform_captions).map(([platform, caption]) => (
+                     <div key={platform} className="bg-zinc-950 border border-zinc-800/50 rounded-xl overflow-hidden group/caption">
+                       <div className="px-3 py-2 bg-white/[0.02] border-b border-zinc-800/50 flex items-center justify-between">
+                         <span className={cn(
+                           "text-[9px] uppercase font-bold tracking-widest",
+                           platform === 'instagram' && 'text-pink-400',
+                           platform === 'tiktok' && 'text-cyan-400',
+                           platform === 'youtube' && 'text-red-400',
+                           !['instagram', 'tiktok', 'youtube'].includes(platform) && 'text-zinc-400'
+                         )}>
+                           {platform}
+                         </span>
+                         <button 
+                           onClick={() => {
+                             navigator.clipboard.writeText(caption)
+                             // Optional: add a toast bit here
+                           }}
+                           className="text-[10px] text-zinc-600 hover:text-zinc-300 font-medium transition-colors opacity-0 group-hover/caption:opacity-100"
+                         >
+                           Copy
+                         </button>
+                       </div>
+                       <div className="p-3">
+                         <p className="text-[11px] text-zinc-400 leading-relaxed line-clamp-4 group-hover/caption:line-clamp-none transition-all">
+                           {caption}
+                         </p>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+             )}
+
              <div className="flex justify-end gap-3 pt-4">
                 <button
                   onClick={handleApprove}

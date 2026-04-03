@@ -2,15 +2,26 @@
 
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Edit3, Send, Check } from 'lucide-react'
+import Image from 'next/image'
 
 interface Slide {
   title: string
   content: string
+  image_url?: string
   imageUrl?: string
 }
 
-export default function CarouselPreview({ draft }: { draft: any }) {
-  const slides: Slide[] = draft.content?.slides || []
+interface CarouselDraft {
+  id: string
+  brand_id: string
+  title?: string | null
+  created_at: string
+  status: string
+  carousel_slides?: Slide[] | null
+}
+
+export default function CarouselPreview({ draft }: { draft: CarouselDraft }) {
+  const slides: Slide[] = draft.carousel_slides || []
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isApproving, setIsApproving] = useState(false)
   const [isApproved, setIsApproved] = useState(draft.status === 'approved' || draft.status === 'scheduled')
@@ -19,14 +30,15 @@ export default function CarouselPreview({ draft }: { draft: any }) {
     setIsApproving(true)
     // Mock approve/schedule
     try {
-      await fetch('/api/run-agent', {
+      const response = await fetch('/api/run-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          agentType: 'scheduler',
-          data: { brandId: draft.brand_id }
+          agent: 'scheduler',
+          brandId: draft.brand_id
         })
       })
+      if (!response.ok) throw new Error('Failed to run scheduler')
       setIsApproved(true)
     } finally {
       setIsApproving(false)
@@ -41,9 +53,15 @@ export default function CarouselPreview({ draft }: { draft: any }) {
         {/* Preview Area */}
         <div className="flex-1 bg-black p-8 flex items-center justify-center min-h-[400px] relative group">
           <div className="w-[300px] h-[300px] bg-zinc-900 rounded-lg shadow-2xl flex flex-col p-6 text-center border border-zinc-800">
-            {slides[currentSlide].imageUrl && (
+            {(slides[currentSlide].image_url || slides[currentSlide].imageUrl) && (
               <div className="w-full h-32 bg-zinc-800 rounded mb-4 overflow-hidden">
-                <img src={slides[currentSlide].imageUrl} className="w-full h-full object-cover opacity-50" />
+                <Image
+                  src={slides[currentSlide].image_url || slides[currentSlide].imageUrl || ''}
+                  alt=""
+                  width={512}
+                  height={256}
+                  className="w-full h-full object-cover opacity-50"
+                />
               </div>
             )}
             <h4 className="text-xl font-bold text-white mb-2 leading-tight">{slides[currentSlide].title}</h4>

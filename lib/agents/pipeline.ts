@@ -13,19 +13,39 @@ export async function runPipeline(brandId?: string) {
 
         // 1. Trend Scouting
         console.log('Pipeline Step 1: Scouting trends...')
-        const scoutResult = await runTrendScout(brandId)
+        let scoutResult = { brandsProcessed: 0, reportsCreated: 0 }
+        try {
+            scoutResult = await runTrendScout(brandId)
+        } catch (e) {
+            console.error('Pipeline: TrendScout failed:', e)
+        }
         
         // 2. Idea Generation
         console.log('Pipeline Step 2: Generating ideas...')
-        const ideaResult = await runIdeaGenerator(brandId)
+        let ideaResult = { brandsProcessed: 0, ideasCreated: 0 }
+        try {
+            ideaResult = await runIdeaGenerator(brandId)
+        } catch (e) {
+            console.error('Pipeline: IdeaGenerator failed:', e)
+        }
 
-        // 3. Content Writing (Optional: normally waits for approval, but we can process existing approved ones)
+        // 3. Content Writing
         console.log('Pipeline Step 3: Writing content for approved ideas...')
-        const writerResult = await runContentWriter(brandId)
+        let writerResult = { brandsProcessed: 0, draftsCreated: 0 }
+        try {
+            writerResult = await runContentWriter(brandId)
+        } catch (e) {
+            console.error('Pipeline: ContentWriter failed:', e)
+        }
 
         // 4. Publishing
         console.log('Pipeline Step 4: Publishing scheduled posts...')
-        const publisherResult = await runPublisher(brandId)
+        let publisherResult = { publishedCount: 0 }
+        try {
+            publisherResult = await runPublisher(brandId)
+        } catch (e) {
+            console.error('Pipeline: Publisher failed:', e)
+        }
 
         const summary = {
             scout: scoutResult,
@@ -35,12 +55,12 @@ export async function runPipeline(brandId?: string) {
             timestamp: new Date().toISOString()
         }
 
-        const count = [
-          scoutResult.reportsCreated,
-          ideaResult.ideasCreated,
-          writerResult.draftsCreated,
-          publisherResult.publishedCount
-        ].reduce((acc, curr) => acc + (curr || 0), 0)
+        const count = 
+          (scoutResult.reportsCreated || 0) +
+          (ideaResult.ideasCreated || 0) +
+          (writerResult.draftsCreated || 0) +
+          (publisherResult.publishedCount || 0)
+
         await logAgentComplete(logId, startedAt, count)
         
         return {

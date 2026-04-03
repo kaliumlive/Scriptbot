@@ -74,6 +74,7 @@ export default function IdeaInput({ brandId, initialTopic = '', onComplete }: Id
             <textarea
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
+              data-testid="ideate-topic-input"
               placeholder="Paste a raw topic, a link, or a messy thought... &ldquo;How to build a home studio on a budget of $500&rdquo;"
               className="w-full bg-transparent border-none focus:ring-0 text-zinc-100 placeholder:text-zinc-600 text-lg resize-none min-h-[120px] leading-relaxed"
               disabled={loading}
@@ -93,6 +94,7 @@ export default function IdeaInput({ brandId, initialTopic = '', onComplete }: Id
               <button
                 type="submit"
                 disabled={loading || !topic}
+                data-testid="ideate-submit-button"
                 className={cn(
                   "flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-indigo-500/10",
                   loading 

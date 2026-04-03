@@ -1,0 +1,37 @@
+
+> scriptbot-temp@0.1.0 dev
+> next dev --webpack
+
+▲ Next.js 16.2.1 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.29.165:3000
+- Environments: .env.local
+✓ Ready in 12.1s
+
+○ Compiling proxy ...
+○ Compiling /analytics ...
+○ Compiling /api/run-agent ...
+ POST /api/run-agent 200 in 8.5s (next.js: 6.3s, proxy.ts: 261ms, application-code: 2.0s)
+ POST /api/run-agent 200 in 1804ms (next.js: 248ms, proxy.ts: 376ms, application-code: 1180ms)
+○ Compiling /dashboard ...
+ GET /dashboard 200 in 14.0s (next.js: 7.9s, proxy.ts: 31ms, application-code: 6.0s)
+○ Compiling /api/run-agent/logs ...
+ GET /api/run-agent/logs?brandId=253b5cdf-1bcc-4d59-973a-b51da740dfdb&limit=5 200 in 11.3s (next.js: 8.6s, proxy.ts: 687ms, application-code: 1964ms)
+○ Compiling /analytics ...
+ GET /api/run-agent/logs?brandId=253b5cdf-1bcc-4d59-973a-b51da740dfdb&limit=5 200 in 3.5s (next.js: 52ms, proxy.ts: 2.5s, application-code: 928ms)
+ GET /dashboard 200 in 12.7s (next.js: 1445ms, proxy.ts: 9.4s, application-code: 1854ms)
+ GET /dashboard 200 in 1721ms (next.js: 97ms, proxy.ts: 241ms, application-code: 1383ms)
+ GET /api/run-agent/logs?brandId=253b5cdf-1bcc-4d59-973a-b51da740dfdb&limit=5 200 in 678ms (next.js: 54ms, proxy.ts: 184ms, application-code: 440ms)
+ GET /analytics 200 in 14.5s (next.js: 9.3s, proxy.ts: 1316ms, application-code: 3.9s)
+ GET /api/run-agent/logs?brandId=253b5cdf-1bcc-4d59-973a-b51da740dfdb&limit=5 200 in 217ms (next.js: 21ms, proxy.ts: 28ms, application-code: 168ms)
+ GET /api/run-agent/logs?brandId=253b5cdf-1bcc-4d59-973a-b51da740dfdb&limit=5 200 in 212ms (next.js: 11ms, proxy.ts: 49ms, application-code: 152ms)
+ POST /api/run-agent 200 in 1051ms (next.js: 23ms, proxy.ts: 32ms, application-code: 996ms)
+ GET /analytics 200 in 1284ms (next.js: 23ms, proxy.ts: 35ms, application-code: 1226ms)
+○ Compiling /ideate ...
+ GET /api/run-agent/logs?brandId=253b5cdf-1bcc-4d59-973a-b51da740dfdb&limit=5 200 in 1821ms (next.js: 41ms, proxy.ts: 1163ms, application-code: 617ms)
+ GET /analytics 200 in 831ms (next.js: 101ms, proxy.ts: 151ms, application-code: 579ms)
+ GET /ideate 200 in 13.6s (next.js: 11.9s, proxy.ts: 34ms, application-code: 1685ms)
+ GET /api/run-agent/logs?brandId=253b5cdf-1bcc-4d59-973a-b51da740dfdb&limit=5 200 in 445ms (next.js: 14ms, proxy.ts: 32ms, application-code: 399ms)
+ GET /api/run-agent/logs?brandId=253b5cdf-1bcc-4d59-973a-b51da740dfdb&limit=5 200 in 210ms (next.js: 10ms, proxy.ts: 50ms, application-code: 151ms)
+○ Compiling /api/agents/flesh-out ...
+ POST /api/agents/flesh-out 200 in 7.3s (next.js: 7.1s, proxy.ts: 71ms, application-code: 82ms)

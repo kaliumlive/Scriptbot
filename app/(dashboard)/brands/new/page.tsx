@@ -8,7 +8,7 @@ type Step = 'basics' | 'your-story' | 'your-voice' | 'philosophy' | 'done'
 const STEPS: Step[] = ['basics', 'your-story', 'your-voice', 'philosophy', 'done']
 const STEP_LABELS = ['Brand basics', 'Your story', 'Your voice', 'Philosophy']
 
-const PLATFORMS = ['instagram', 'tiktok', 'twitter', 'linkedin', 'youtube']
+const PLATFORMS = ['instagram', 'tiktok', 'twitter', 'youtube']
 
 interface FormState {
   name: string
@@ -264,8 +264,11 @@ export default function NewBrandPage() {
               className={inputCls}
             />
           </Field>
-          <Field label="Platforms">
-            <div className="flex flex-wrap gap-2">
+          <Field 
+            label="Platforms" 
+            note="Select the platforms you want to track analytics for. Integrations are currently read-only."
+          >
+            <div className="flex flex-wrap gap-2 mb-2">
               {PLATFORMS.map(p => (
                 <button
                   key={p}
@@ -281,6 +284,9 @@ export default function NewBrandPage() {
                 </button>
               ))}
             </div>
+            <p className="text-[10px] text-indigo-400 font-medium">
+              Note: System generates drafts, but does not auto-post to these platforms.
+            </p>
           </Field>
         </div>
       )}

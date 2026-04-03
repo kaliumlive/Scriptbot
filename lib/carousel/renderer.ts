@@ -1,11 +1,12 @@
-import puppeteer from 'puppeteer-core'
-import chromium from '@sparticuz/chromium-min'
-
 export async function renderSlides(
     slides: Array<{ title: string; content: string; imageUrl?: string }>,
     _brandId: string
 ): Promise<string[]> {
     const isProd = process.env.NODE_ENV === 'production'
+    const [{ default: puppeteer }, { default: chromium }] = await Promise.all([
+        import('puppeteer-core'),
+        import('@sparticuz/chromium-min')
+    ])
 
     const browser = await puppeteer.launch({
         args: isProd ? chromium.args : [],

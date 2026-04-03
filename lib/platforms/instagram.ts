@@ -1,4 +1,89 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+interface InstagramMediaItem {
+    id: string
+    caption?: string
+    media_type?: string
+    media_product_type?: string
+    permalink?: string
+    timestamp?: string
+}
+
+interface ImportResult {
+    importedPosts: number
+    scannedPosts: number
+}
+
+export async function importInstagramPublishedPosts(brandId: string, limit: number = 100): Promise<ImportResult> {
+    const supabase = createAdminClient()
+
+    const { data: connection } = await supabase
+        .from('platform_connections')
+        .select('*')
+        .eq('brand_id', brandId)
+        .eq('platform', 'instagram')
+        .eq('is_active', true)
+        .single()
+
+    if (!connection?.access_token || !connection?.external_account_id) {
+        return { importedPosts: 0, scannedPosts: 0 }
+    }
+
+    const existingResult = await supabase
+        .from('published_posts')
+        .select('platform_post_id')
+        .eq('brand_id', brandId)
+        .eq('platform', 'instagram')
+
+    const existingIds = new Set((existingResult.data ?? []).map((row: { platform_post_id: string | null }) => row.platform_post_id).filter(Boolean))
+
+    const collected: InstagramMediaItem[] = []
+    let nextUrl: string | null =
+        `https://graph.facebook.com/v19.0/${connection.external_account_id}/media?` +
+        new URLSearchParams({
+            fields: 'id,caption,media_type,media_product_type,permalink,timestamp',
+            limit: String(Math.min(limit, 100)),
+            access_token: connection.access_token,
+        }).toString()
+
+    while (nextUrl && collected.length < limit) {
+        const response = await fetch(nextUrl)
+        const payload = await response.json()
+
+        if (!response.ok) {
+            throw new Error(`Instagram media import failed: ${JSON.stringify(payload)}`)
+        }
+
+        const items = (payload.data as InstagramMediaItem[] | undefined) ?? []
+        collected.push(...items)
+
+        const next = payload.paging?.next
+        nextUrl = typeof next === 'string' && collected.length < limit ? next : null
+    }
+
+    const rowsToInsert = collected
+        .filter((item) => item.id && !existingIds.has(item.id))
+        .map((item) => ({
+            brand_id: brandId,
+            platform: 'instagram',
+            platform_post_id: item.id,
+            platform_post_url: item.permalink ?? null,
+            published_at: item.timestamp ?? new Date().toISOString(),
+        }))
+
+    if (rowsToInsert.length > 0) {
+        const { error } = await supabase.from('published_posts').insert(rowsToInsert)
+        if (error) {
+            throw new Error(`Failed to save imported Instagram posts: ${error.message}`)
+        }
+    }
+
+    return {
+        importedPosts: rowsToInsert.length,
+        scannedPosts: collected.length,
+    }
+}
 
 export async function postToInstagram(brandId: string, draftId: string) {
     const supabase = await createClient()
@@ -26,13 +111,13 @@ export async function postToInstagram(brandId: string, draftId: string) {
     const accessToken = connection.access_token
     const caption = `${draft.title}\n\n${draft.script}\n\n${(draft.hashtags || []).join(' ')}`
 
-    // Find the media URL (Try repurpose job first, then slides, then a placeholder)
+    // Find the media URL attached to this draft or repurpose job.
     let mediaUrl = ''
     let mediaType: 'REELS' | 'IMAGE' = 'REELS'
 
     const { data: job } = await supabase
         .from('video_repurpose_jobs')
-        .select('video_storage_path')
+        .select('video_storage_path, carousel_slide_urls')
         .eq('draft_id', draftId)
         .single()
 
@@ -43,15 +128,16 @@ export async function postToInstagram(brandId: string, draftId: string) {
           .getPublicUrl(job.video_storage_path)
         mediaUrl = publicData.publicUrl
         mediaType = 'REELS'
+    } else if (Array.isArray(job?.carousel_slide_urls) && job.carousel_slide_urls.length > 0) {
+        mediaUrl = job.carousel_slide_urls[0]
+        mediaType = 'IMAGE'
     } else if (draft.carousel_slides?.length > 0) {
-        mediaUrl = draft.carousel_slides[0].image_url
+        mediaUrl = draft.carousel_slides[0].image_url || draft.carousel_slides[0].imageUrl
         mediaType = 'IMAGE'
     }
 
     if (!mediaUrl) {
-        // Placeholder if no media found (for testing/agent-only flows)
-        mediaUrl = 'https://picsum.photos/1080/1920' 
-        mediaType = 'IMAGE'
+        throw new Error('Instagram publishing requires a real video or rendered carousel image on the draft.')
     }
 
     console.log(`Publishing to IG (${mediaType}): ${mediaUrl}`)

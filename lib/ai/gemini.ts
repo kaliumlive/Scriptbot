@@ -22,3 +22,14 @@ export async function analyzeImageWithGemini(prompt: string, imageBase64: string
   ])
   return result.response.text()
 }
+
+export async function analyzeFramesWithGemini(prompt: string, frames: { base64: string, mimeType: string }[]): Promise<string> {
+  const parts: Array<string | { inlineData: { data: string, mimeType: string } }> = [prompt]
+  frames.forEach(f => {
+    parts.push({ inlineData: { data: f.base64, mimeType: f.mimeType } })
+  })
+  
+  // Try using flash for multi-frame since it is faster and usually good enough, or Pro if needed. We'll use flash here.
+  const result = await getPro().generateContent(parts)
+  return result.response.text()
+}

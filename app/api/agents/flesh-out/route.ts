@@ -3,7 +3,9 @@ import { runIdeationFlesher } from '@/lib/agents/ideation-flesher'
 
 export async function POST(req: Request) {
   try {
-    const { brandId, topic } = await req.json()
+    const body = await req.json().catch(() => null)
+    const brandId = body?.brandId
+    const topic = body?.topic
 
     if (!brandId || !topic) {
       return NextResponse.json({ error: 'Missing brandId or topic' }, { status: 400 })

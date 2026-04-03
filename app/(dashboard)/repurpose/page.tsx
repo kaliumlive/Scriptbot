@@ -3,6 +3,36 @@ import { Layers, ArrowRight } from 'lucide-react'
 import VideoUploader from '@/components/repurpose/VideoUploader'
 import CarouselPreview from '@/components/repurpose/CarouselPreview'
 import StoryboardPreview from '@/components/repurpose/StoryboardPreview'
+import Link from 'next/link'
+
+interface StoryboardBeat {
+  text: string
+  visual: string
+  style: 'cinematic' | 'mograph' | 'talking-head' | 'movie-clip'
+  movie_reference?: string
+  youtube_search_query?: string
+  audio_cue?: string
+  duration: number
+}
+
+interface CarouselSlide {
+  title: string
+  content: string
+  image_url?: string
+  imageUrl?: string
+}
+
+interface RepurposeDraft {
+  id: string
+  brand_id: string
+  title?: string | null
+  content_type?: string | null
+  created_at: string
+  status: string
+  script?: string | null
+  storyboard?: StoryboardBeat[] | null
+  carousel_slides?: CarouselSlide[] | null
+}
 
 const YoutubeIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -23,6 +53,9 @@ export default async function RepurposePage() {
   const supabase = await createClient()
   await supabase.auth.getUser()
 
+  const { data: brands } = await supabase.from('brands').select('id').limit(1)
+  const brandId = brands?.[0]?.id ?? null
+
   // Fetch recent drafts
   const { data: drafts } = await supabase
     .from('content_drafts')
@@ -40,18 +73,21 @@ export default async function RepurposePage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-        <VideoUploader brandId="default-brand" />
+        {brandId ? <VideoUploader brandId={brandId} /> : null}
 
-        <div className="bg-zinc-900 border border-dashed border-zinc-700 rounded-xl p-8 text-center hover:border-zinc-600 transition-colors cursor-pointer group">
+        <Link
+          href="/settings/connections"
+          className="bg-zinc-900 border border-dashed border-zinc-700 rounded-xl p-8 text-center hover:border-zinc-600 transition-colors cursor-pointer group block"
+        >
           <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:bg-red-500/20 transition-colors">
             <YoutubeIcon className="w-5 h-5 text-red-500" />
           </div>
           <p className="text-zinc-200 text-sm font-semibold mb-1">Connect YouTube</p>
-          <p className="text-zinc-500 text-xs">Import from your channel automatically</p>
+          <p className="text-zinc-500 text-xs">Finish the connection flow and import from your channel directly</p>
           <div className="mt-4 flex items-center justify-center gap-1 text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
-            Coming Soon <ArrowRight className="w-3 h-3" />
+            Open setup <ArrowRight className="w-3 h-3" />
           </div>
-        </div>
+        </Link>
       </div>
 
       {drafts && drafts.length > 0 && (
@@ -61,7 +97,7 @@ export default async function RepurposePage() {
             <h2 className="text-sm font-bold text-zinc-300 uppercase tracking-wider">Recent Drafts</h2>
           </div>
           <div className="grid grid-cols-1 gap-4">
-            {drafts.map((draft: { id: string; storyboard?: any[]; [key: string]: any }) => (
+            {(drafts as RepurposeDraft[]).map((draft) => (
               draft.storyboard && draft.storyboard.length > 0 ? (
                 <StoryboardPreview key={draft.id} draft={draft} />
               ) : (
@@ -79,7 +115,7 @@ export default async function RepurposePage() {
             { step: '01', title: 'Extraction', text: 'FFmpeg extracts high-density frames in your browser.' },
             { step: '02', title: 'Analysis', text: 'Gemini Vision identifies hooks and key educational pillars.' },
             { step: '03', title: 'Generation', text: 'Agents apply your brand voice to auto-generated slides.' },
-            { step: '04', title: 'Publishing', text: 'One-click push to LinkedIn, Instagram, and Twitter.' },
+            { step: '04', title: 'Publishing', text: 'One-click push to Instagram, TikTok, and Twitter.' },
           ].map(item => (
             <div key={item.step} className="flex gap-4">
               <span className="text-xl font-black text-zinc-800 tabular-nums leading-none">{item.step}</span>

@@ -12,6 +12,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { generateWithGroq } from '@/lib/ai/groq'
 import { buildVoiceSystemPrompt } from '@/lib/brand/voice'
 import type { BrandVoiceProfile } from '@/lib/brand/voice'
+import { parseLLMJson } from '@/lib/utils'
 
 interface TrendReport {
   id: string
@@ -81,7 +82,7 @@ Return ONLY a JSON array, no markdown:
 Rules:
 - hook must be specific and attention-grabbing, not generic
 - content_type: short_video | carousel | thread | long_video | reel
-- auto_approve: true for ideas that clearly fit the brand voice, false for experimental ones
+- auto_approve: true for ideas that clearly fit the brand voice (be proactive, aim for 3-4 auto-approved per 7 ideas), false for highly experimental ones
 - Do NOT include ideas the creator has flagged as off-limits${voiceProfile?.never_do ? ': ' + voiceProfile.never_do : ''}
 `
 }
@@ -139,14 +140,10 @@ export async function runIdeaGenerator(brandId?: string): Promise<{
       const raw = await generateWithGroq(prompt, voiceSystemPrompt)
 
       // Parse ideas
-      let ideas: GeneratedIdea[]
-      try {
-        const clean = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
-        ideas = JSON.parse(clean)
-      } catch {
-        const match = raw.match(/\[[\s\S]*\]/)
-        if (!match) { console.error(`IdeaGenerator: failed to parse ideas for brand ${brand.id}`); continue }
-        ideas = JSON.parse(match[0])
+      const ideas = parseLLMJson<GeneratedIdea[]>(raw)
+      if (!Array.isArray(ideas) || ideas.length === 0) {
+        console.error(`IdeaGenerator: Failed to parse ideas for brand ${brand.id}`, raw)
+        continue
       }
 
       // Insert ideas

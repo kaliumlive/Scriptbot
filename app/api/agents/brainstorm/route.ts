@@ -3,7 +3,8 @@ import { runTopicBrainstormer } from '@/lib/agents/ideation-flesher'
 
 export async function POST(req: NextRequest) {
   try {
-    const { brandId } = await req.json()
+    const body = await req.json().catch(() => null)
+    const brandId = body?.brandId
     if (!brandId) return NextResponse.json({ error: 'Brand ID required' }, { status: 400 })
 
     const ideas = await runTopicBrainstormer(brandId)

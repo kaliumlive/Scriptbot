@@ -1,5 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { addDays, setHours, setMinutes } from 'date-fns'
+
+function getNextScheduledSlot() {
+    const nextSlot = new Date()
+    nextSlot.setDate(nextSlot.getDate() + 1)
+    nextSlot.setHours(9, 0, 0, 0)
+    return nextSlot
+}
 
 export async function runScheduler(brandId: string) {
     const supabase = createAdminClient()
@@ -13,8 +19,7 @@ export async function runScheduler(brandId: string) {
     if (!drafts || drafts.length === 0) return { scheduledCount: 0 }
 
     for (const draft of drafts) {
-        const nextSlot = addDays(new Date(), 1)
-        const scheduledAt = setMinutes(setHours(nextSlot, 9), 0)
+        const scheduledAt = getNextScheduledSlot()
 
         const platforms = draft.platforms || ['youtube']
 

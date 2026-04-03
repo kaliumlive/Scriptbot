@@ -13,11 +13,7 @@ export async function postToTwitter(brandId: string, draftId: string) {
     if (error || !connection) throw new Error('Twitter connection not found')
 
     console.log(`Posting to Twitter for brand ${brandId}: ${draftId}`)
-
-    return {
-        platform_post_id: `tw_${Math.random().toString(36).substring(7)}`,
-        platform_post_url: `https://twitter.com/status/mock`,
-    }
+    throw new Error('Twitter publishing is not implemented yet. Add the X posting flow before enabling the publisher.')
 }
 
 export async function getTwitterMetrics(_postId: string, _brandId: string) {

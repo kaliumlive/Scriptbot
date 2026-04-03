@@ -59,23 +59,6 @@ export const OAUTH_CONFIGS: Record<string, OAuthPlatformConfig> = {
       { envVar: 'TIKTOK_CLIENT_SECRET', where: 'TikTok Developer Portal → App Detail → Client Secret' },
     ],
   },
-  linkedin: {
-    platform: 'linkedin',
-    label: 'LinkedIn',
-    envClientId: 'LINKEDIN_CLIENT_ID',
-    envClientSecret: 'LINKEDIN_CLIENT_SECRET',
-    authUrl: 'https://www.linkedin.com/oauth/v2/authorization',
-    tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
-    scopes: ['openid', 'profile', 'w_member_social'],
-    scopeJoin: ' ',
-    color: 'from-blue-600 to-blue-700',
-    badge: 'LI',
-    note: 'Personal profile or company page',
-    setupGuide: [
-      { envVar: 'LINKEDIN_CLIENT_ID', where: 'linkedin.com/developers → Your App → Auth → Client ID' },
-      { envVar: 'LINKEDIN_CLIENT_SECRET', where: 'linkedin.com/developers → Your App → Auth → Primary Client Secret' },
-    ],
-  },
   youtube: {
     platform: 'youtube',
     label: 'YouTube',

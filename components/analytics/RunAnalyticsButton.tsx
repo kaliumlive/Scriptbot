@@ -18,8 +18,8 @@ export default function RunAnalyticsButton({ brandId }: { brandId: string }) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    agentType: 'analytics',
-                    data: { brandId }
+                    agent: 'analytics',
+                    brandId
                 })
             })
 
@@ -41,6 +41,7 @@ export default function RunAnalyticsButton({ brandId }: { brandId: string }) {
         <button
             onClick={handleSync}
             disabled={isRunning}
+            data-testid="analytics-sync-button"
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isSuccess
                     ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
                     : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700'

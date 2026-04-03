@@ -114,7 +114,7 @@ export function createCallbackHandler(platform: string) {
         )
         const pagesData = await pagesRes.json()
         
-        const debugLogs: any[] = []
+        const debugLogs: Array<{ pageId?: string; pageName?: string; igData?: unknown; error?: string; pagesData?: unknown }> = []
 
         if (pagesData.data && pagesData.data.length > 0) {
           console.log(`[Instagram OAuth] Found ${pagesData.data.length} Facebook Pages. Searching for linked IG Business Account...`)

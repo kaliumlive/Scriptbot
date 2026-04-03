@@ -1,13 +1,41 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getInstagramMetrics } from '../platforms/instagram'
+import { getYouTubeMetrics } from '../platforms/youtube'
+import { getTikTokMetrics } from '../platforms/tiktok'
 import { generateWithGroq } from '../ai/groq'
+import { importConnectedPostHistory } from '../platforms/history-sync'
 
-const PLATFORM_METRICS: Record<string, (brandId: string, postId: string) => Promise<any>> = {
+interface PlatformMetrics {
+    likes?: number
+    comments?: number
+    shares?: number
+    saves?: number
+    reach?: number
+    impressions?: number
+    views?: number
+    [key: string]: number | undefined
+}
+
+interface PublishedPostRecord {
+    id: string
+    platform: string
+    platform_post_id: string
+}
+
+interface AnalyticsSummary {
+    post: PublishedPostRecord
+    stats: PlatformMetrics
+}
+
+const PLATFORM_METRICS: Record<string, (brandId: string, postId: string) => Promise<Record<string, number>>> = {
     instagram: getInstagramMetrics,
+    youtube: getYouTubeMetrics,
+    tiktok: getTikTokMetrics,
 }
 
 export async function runAnalytics(brandId: string) {
     const supabase = createAdminClient()
+    const historySync = await importConnectedPostHistory(brandId)
 
     // 1. Get published posts for the brand
     const { data: posts } = await supabase
@@ -15,27 +43,22 @@ export async function runAnalytics(brandId: string) {
         .select('*')
         .eq('brand_id', brandId)
         .order('published_at', { ascending: false })
-        .limit(10)
 
-    if (!posts || posts.length === 0) return { snapshotsCreated: 0 }
+    if (!posts || posts.length === 0) {
+        return {
+            snapshotsCreated: 0,
+            importedPosts: historySync.importedPosts,
+            scannedPosts: historySync.scannedPosts,
+            platformImports: historySync.platforms,
+        }
+    }
 
     let snapshotsCreated = 0
-    const allStats: any[] = []
+    const allStats: AnalyticsSummary[] = []
 
-    for (const post of posts) {
+    for (const post of posts as PublishedPostRecord[]) {
         const metricsFn = PLATFORM_METRICS[post.platform as keyof typeof PLATFORM_METRICS]
         if (!metricsFn) {
-            // Mock for non-implemented platforms to keep the UI alive
-            const mockStats = {
-                likes: Math.floor(Math.random() * 100),
-                comments: Math.floor(Math.random() * 10),
-                reach: Math.floor(Math.random() * 1000),
-                impressions: Math.floor(Math.random() * 1200),
-                views: Math.floor(Math.random() * 500),
-                shares: Math.floor(Math.random() * 5),
-                saves: Math.floor(Math.random() * 8)
-            }
-            allStats.push({ post, stats: mockStats })
             continue
         }
 
@@ -75,9 +98,26 @@ export async function runAnalytics(brandId: string) {
         `
         const ai_insights = await generateWithGroq(insightsPrompt)
 
-        // Store a "Global" snapshot if needed, or just return it
-        return { snapshotsCreated, ai_insights }
+        // Persist to the latest snapshot so the UI can retrieve it
+        const latestSnapshotId = allStats[0].post.id
+        await supabase
+            .from('analytics_snapshots')
+            .update({ ai_insights })
+            .eq('published_post_id', latestSnapshotId)
+
+        return {
+            snapshotsCreated,
+            importedPosts: historySync.importedPosts,
+            scannedPosts: historySync.scannedPosts,
+            platformImports: historySync.platforms,
+            ai_insights
+        }
     }
 
-    return { snapshotsCreated }
+    return {
+        snapshotsCreated,
+        importedPosts: historySync.importedPosts,
+        scannedPosts: historySync.scannedPosts,
+        platformImports: historySync.platforms,
+    }
 }
