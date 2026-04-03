@@ -192,7 +192,7 @@ export async function postToInstagram(brandId: string, draftId: string) {
 }
 
 export async function getInstagramMetrics(brandId: string, platformPostId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     const { data: connection } = await supabase
         .from('platform_connections')
@@ -224,7 +224,7 @@ export async function getInstagramMetrics(brandId: string, platformPostId: strin
         }
 
         const insightsRes = await fetch(
-            `https://graph.facebook.com/v19.0/${platformPostId}/insights?metric=${metricsToFetch.join(',')}&access_token=${accessToken}`
+            `https://graph.facebook.com/v19.0/${platformPostId}/insights?metric=${metricsToFetch.join(',')}&period=lifetime&access_token=${accessToken}`
         )
         const insightsData = await insightsRes.json()
 

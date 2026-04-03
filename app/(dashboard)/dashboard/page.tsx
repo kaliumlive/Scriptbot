@@ -50,15 +50,28 @@ export default async function DashboardPage() {
     }
   }
 
+  // Fetch last run per agent key (one query per agent — lightweight, no DISTINCT ON needed)
+  const agentKeys = AGENTS.map(a => a.key)
+  const lastRunResults = await Promise.all(
+    agentKeys.map(key =>
+      supabase
+        .from('agent_logs')
+        .select('*')
+        .eq('agent_name', key)
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    )
+  )
+  const agentLogMap = Object.fromEntries(
+    agentKeys.map((key, i) => [key, lastRunResults[i].data ?? null])
+  )
+
   const { data: recentLogs } = await supabase
     .from('agent_logs')
     .select('*')
     .order('started_at', { ascending: false })
     .limit(10)
-
-  const agentLogMap = Object.fromEntries(
-    (recentLogs ?? []).map((l: { agent_name: string }) => [l.agent_name, l])
-  )
 
   return (
     <div className="min-h-full bg-[#09090b]">

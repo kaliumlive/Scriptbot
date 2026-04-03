@@ -24,19 +24,16 @@ export const OAUTH_CONFIGS: Record<string, OAuthPlatformConfig> = {
     tokenUrl: 'https://graph.facebook.com/v19.0/oauth/access_token',
     scopes: [
       'instagram_basic',
-      'instagram_content_publish',
       'instagram_manage_insights',
       'pages_show_list',
       'pages_read_engagement',
       'public_profile',
-      'instagram_manage_comments',
-      'instagram_manage_messages'
     ],
     scopeJoin: ',',
     extraAuthParams: { config_id: process.env.INSTAGRAM_CONFIG_ID || '2760816937613550' },
     color: 'from-pink-500 to-rose-500',
     badge: 'IG',
-    note: 'Requires Instagram Business account connected to a Facebook Page',
+    note: 'Read-only analytics — requires Business account linked to a Facebook Page',
     setupGuide: [
       { envVar: 'INSTAGRAM_APP_ID', where: 'Meta Developer Console → Your App → Settings → Basic → App ID' },
       { envVar: 'INSTAGRAM_APP_SECRET', where: 'Meta Developer Console → Your App → Settings → Basic → App Secret' },

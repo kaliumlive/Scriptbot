@@ -1,7 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function postToTikTok(brandId: string, draftId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     const { data: connection, error } = await supabase
         .from('platform_connections')
@@ -17,7 +17,7 @@ export async function postToTikTok(brandId: string, draftId: string) {
 }
 
 export async function getTikTokMetrics(brandId: string, platformPostId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     const { data: connection } = await supabase
         .from('platform_connections')
