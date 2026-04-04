@@ -131,6 +131,8 @@ export default async function AnalyticsPage() {
     }
   })
 
+  type EnrichedPost = (typeof postsData)[number]
+
   // ── Cross-post grouping ──────────────────────────────────────────────────
   // Normalize a title for comparison: lowercase, strip emoji/punctuation, collapse whitespace
   function normalizeTitle(title: string): string {
@@ -143,7 +145,7 @@ export default async function AnalyticsPage() {
   }
 
   // Group posts by normalized title — posts with the same title across platforms are cross-posts
-  const titleGroups = new Map<string, typeof postsData>()
+  const titleGroups = new Map<string, EnrichedPost[]>()
   for (const post of postsData) {
     if (!post.title) continue
     const key = normalizeTitle(post.title)
@@ -156,9 +158,9 @@ export default async function AnalyticsPage() {
   const crossPostMap = new Map<string, string[]>()
   for (const group of titleGroups.values()) {
     if (group.length > 1) {
-      const platforms = group.map((p) => p.platform)
+      const platforms = group.map((p: EnrichedPost) => p.platform)
       for (const post of group) {
-        crossPostMap.set(post.id, platforms.filter((pl) => pl !== post.platform))
+        crossPostMap.set(post.id, platforms.filter((pl: string) => pl !== post.platform))
       }
     }
   }
