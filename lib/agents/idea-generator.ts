@@ -14,20 +14,6 @@ import { buildVoiceSystemPrompt } from '@/lib/brand/voice'
 import type { BrandVoiceProfile } from '@/lib/brand/voice'
 import { parseLLMJson } from '@/lib/utils'
 
-interface TrendReport {
-  id: string
-  platform: string
-  niche: string
-  trends: TrendItem[]
-}
-
-interface TrendItem {
-  topic: string
-  angle?: string
-  format?: string
-  why_trending?: string
-}
-
 interface GeneratedIdea {
   title: string
   concept: string
@@ -40,39 +26,58 @@ interface GeneratedIdea {
 
 function buildIdeaPrompt(brand: {
   name: string
-  niche: string
   platforms: string[]
-}, trendReports: TrendReport[], voiceProfile: BrandVoiceProfile | null): string {
-  const trendsText = trendReports.length
-    ? trendReports.map(r =>
-        `[${r.platform.toUpperCase()}] ${r.trends.slice(0, 3).map(t => `"${t.topic}"${t.angle ? ' — ' + t.angle : ''}`).join(' | ')}`
-      ).join('\n')
-    : 'No trend data available — generate evergreen ideas based on the niche.'
+}, voiceProfile: BrandVoiceProfile | null, existingTitles: string[]): string {
+  // Build rich experience context from voice profile
+  const experienceLines: string[] = []
+  if (voiceProfile?.worldview) experienceLines.push(`WORLDVIEW: ${voiceProfile.worldview}`)
+  if (voiceProfile?.click_moment) experienceLines.push(`DEFINING MOMENT: ${voiceProfile.click_moment}`)
+  if (voiceProfile?.unlearned) experienceLines.push(`UNLEARNED: ${voiceProfile.unlearned}`)
+  if (voiceProfile?.building_toward) experienceLines.push(`BUILDING TOWARD: ${voiceProfile.building_toward}`)
+  if (voiceProfile?.known_for) experienceLines.push(`KNOWN FOR: ${voiceProfile.known_for}`)
+  if (voiceProfile?.unpopular_belief) experienceLines.push(`UNPOPULAR BELIEF: ${voiceProfile.unpopular_belief}`)
+  if (voiceProfile?.hard_period) experienceLines.push(`HARD PERIOD: ${voiceProfile.hard_period}`)
+  if (voiceProfile?.sacrifices) experienceLines.push(`HOW THEY OPERATE: ${voiceProfile.sacrifices}`)
+  if (voiceProfile?.ideal_viewer) experienceLines.push(`IDEAL VIEWER: ${voiceProfile.ideal_viewer}`)
+  if (voiceProfile?.desired_feeling) experienceLines.push(`DESIRED FEELING: ${voiceProfile.desired_feeling}`)
 
-  const voiceContext = voiceProfile?.style_guide
-    ? `\nCREATOR VOICE:\n${voiceProfile.style_guide.slice(0, 500)}`
-    : voiceProfile?.natural_tone
-      ? `\nCREATOR VOICE: ${voiceProfile.natural_tone}`
-      : ''
+  const avoidTitles = existingTitles.length
+    ? `\nALREADY COVERED (do not repeat these topics):\n${existingTitles.slice(0, 15).map(t => `- ${t}`).join('\n')}`
+    : ''
 
-  return `You are a content strategist generating ideas for a social media creator.
+  return `You are generating content ideas for a creator. Ideas MUST come from their lived experience and personal perspective — not generic advice or tutorials.
 
-BRAND: ${brand.name}
-NICHE: ${brand.niche}
-PLATFORMS: ${brand.platforms.join(', ')}${voiceContext}
+CREATOR: ${brand.name}
+PLATFORMS: ${brand.platforms.join(', ')}
 
-CURRENT TRENDS:
-${trendsText}
+CREATOR CONTEXT:
+${experienceLines.join('\n')}
 
-Generate exactly 7 content ideas. Each idea should ride a trend OR be evergreen wisdom for the niche. Vary the content types (short_video, carousel, thread, long_video).
+STYLE:
+${voiceProfile?.style_guide ? voiceProfile.style_guide.slice(0, 600) : voiceProfile?.natural_tone ?? ''}
+${avoidTitles}
+
+Generate exactly 7 content ideas. Each must be rooted in something the creator actually experienced, noticed, or has a real opinion on. No generic tips, no tutorials, no listicles about "X ways to improve your mix."
+
+Good examples of the right direction:
+- "Why I stopped listening to my mentors" (personal turning point)
+- "The mix I almost deleted" (real story, specific moment)
+- "What feedback from [artist] actually changed" (experience-based insight)
+- "Why I apply Indian scales when Western ones 'work fine'" (honest perspective)
+
+Bad examples (do NOT generate these):
+- "5 tips for better mixing"
+- "How to use a compressor"
+- "Best free VSTs in 2025"
+- "A day in the life of a music producer"
 
 Return ONLY a JSON array, no markdown:
 [
   {
     "title": "short punchy title",
-    "concept": "1-2 sentence description of what the content covers",
-    "hook": "the first line/sentence that stops the scroll",
-    "story_structure_id": "one of: lesson|breakthrough|hot_take|comparison|day_in_life|behind_scenes|hero_journey|myth_busting|reaction|tutorial",
+    "concept": "1-2 sentences — what real experience or observation drives this",
+    "hook": "first line that stops the scroll — specific, not generic",
+    "story_structure_id": "one of: lesson|breakthrough|hot_take|comparison|day_in_life|behind_scenes|hero_journey|myth_busting|reaction",
     "target_platforms": ["instagram", "tiktok"],
     "content_type": "short_video",
     "auto_approve": true
@@ -80,10 +85,10 @@ Return ONLY a JSON array, no markdown:
 ]
 
 Rules:
-- hook must be specific and attention-grabbing, not generic
+- Every idea must be something only THIS creator could make — tied to their specific story
 - content_type: short_video | carousel | thread | long_video | reel
-- auto_approve: true for ideas that clearly fit the brand voice (be proactive, aim for 3-4 auto-approved per 7 ideas), false for highly experimental ones
-- Do NOT include ideas the creator has flagged as off-limits${voiceProfile?.never_do ? ': ' + voiceProfile.never_do : ''}
+- auto_approve true only when it clearly fits their voice and experience
+- NEVER: ${voiceProfile?.never_do ?? 'generic tutorials, CTAs, motivational framing'}
 `
 }
 
@@ -95,7 +100,7 @@ export async function runIdeaGenerator(brandId?: string): Promise<{
   const supabase = createAdminClient()
 
   // Get brands to process
-  const q = supabase.from('brands').select('id, name, niche, platforms')
+  const q = supabase.from('brands').select('id, name, platforms')
   const { data: brands, error: brandsError } = brandId ? await q.eq('id', brandId) : await q
 
   if (brandsError || !brands?.length) {
@@ -106,22 +111,22 @@ export async function runIdeaGenerator(brandId?: string): Promise<{
 
   for (const brand of brands) {
     try {
-      // Get latest trend reports (last 24h)
-      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-      const { data: trendReports } = await supabase
-        .from('trend_reports')
-        .select('id, platform, niche, trends')
-        .eq('brand_id', brand.id)
-        .gte('created_at', since)
-        .order('created_at', { ascending: false })
-        .limit(5)
-
       // Get voice profile
       const { data: voiceProfile } = await supabase
         .from('brand_voice_profiles')
         .select('*')
         .eq('brand_id', brand.id)
         .single()
+
+      // Get existing idea titles to avoid repetition
+      const { data: existingIdeas } = await supabase
+        .from('content_ideas')
+        .select('title')
+        .eq('brand_id', brand.id)
+        .order('created_at', { ascending: false })
+        .limit(30)
+
+      const existingTitles = (existingIdeas ?? []).map((i: { title: string }) => i.title)
 
       const voiceSystemPrompt = voiceProfile
         ? buildVoiceSystemPrompt(voiceProfile as BrandVoiceProfile)
@@ -130,11 +135,10 @@ export async function runIdeaGenerator(brandId?: string): Promise<{
       const prompt = buildIdeaPrompt(
         {
           name: brand.name,
-          niche: brand.niche ?? 'music production',
           platforms: (brand.platforms as string[]) ?? ['instagram', 'tiktok'],
         },
-        (trendReports ?? []) as TrendReport[],
-        voiceProfile as BrandVoiceProfile | null
+        voiceProfile as BrandVoiceProfile | null,
+        existingTitles
       )
 
       const raw = await generateWithGroq(prompt, voiceSystemPrompt)

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { OAUTH_CONFIGS } from '@/lib/platforms/oauth-config'
 import { CheckCircle2, ExternalLink, AlertCircle, ChevronDown, Rocket } from 'lucide-react'
 import { disconnectPlatform, initializeDefaultBrand } from './actions'
+import { hasRealSupabaseServiceRoleKey, resolveAppOriginFromHeaders } from '@/lib/utils/app-origin'
 
 export default async function ConnectionsPage({
   searchParams,
@@ -11,6 +12,8 @@ export default async function ConnectionsPage({
   const { error: oauthError, platform: errorPlatform, connected, message: errorMsg } = await searchParams
 
   const supabase = await createClient()
+  const appOrigin = await resolveAppOriginFromHeaders()
+  const hasServiceRoleKey = hasRealSupabaseServiceRoleKey()
   // Auth disabled — fetch all brands
   const { data: brands } = await supabase.from('brands').select('id, name').limit(1)
   const brand = brands?.[0]
@@ -50,6 +53,19 @@ export default async function ConnectionsPage({
           </p>
         </div>
       </div>
+
+      {!hasServiceRoleKey && (
+        <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5 mb-8 ring-1 ring-amber-500/30">
+          <AlertCircle className="w-6 h-6 text-amber-300 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-black text-amber-200 mb-1.5 uppercase tracking-[0.1em]">Backend Setup Required</h4>
+            <p className="text-xs text-amber-100/90 leading-relaxed font-medium">
+              <strong>SUPABASE_SERVICE_ROLE_KEY</strong> is missing or matches the anon key.
+              Background analytics imports need a real service-role key or the sync job will stay empty even after OAuth succeeds.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* OAuth success toast */}
       {connected && (
@@ -197,7 +213,7 @@ export default async function ConnectionsPage({
                     ))}
                     <p className="text-[11px] text-zinc-700 flex items-center gap-1">
                       <ExternalLink className="w-3 h-3" />
-                      Add <code className="text-zinc-500 mx-0.5">{process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/oauth/{p.platform}/callback</code> as your OAuth redirect URI
+                      Add <code className="text-zinc-500 mx-0.5">{appOrigin}/api/oauth/{p.platform}/callback</code> as your OAuth redirect URI
                     </p>
                   </div>
                 </details>

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { resolveAppOriginFromHeaders } from '@/lib/utils/app-origin'
 
 export async function disconnectPlatform(platform: string) {
   const supabase = await createClient()
@@ -26,8 +27,8 @@ export async function disconnectPlatform(platform: string) {
 }
 
 export async function initializeDefaultBrand() {
-  const HOST = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  await fetch(`${HOST}/api/seed-brand`, { method: 'POST' })
+  const host = await resolveAppOriginFromHeaders()
+  await fetch(`${host}/api/seed-brand`, { method: 'POST' })
   revalidatePath('/settings/connections')
   revalidatePath('/pipeline')
 }

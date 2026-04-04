@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveAppOriginFromRequest } from '@/lib/utils/app-origin'
 
 export interface PlatformOAuthConfig {
     clientId: string
@@ -50,7 +51,7 @@ export async function handleOAuthCallback(platform: string, request: NextRequest
     const config = CONFIGS[platform]
     if (!config) throw new Error(`Unsupported platform: ${platform}`)
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const baseUrl = resolveAppOriginFromRequest(request)
     const redirectUri = `${baseUrl}/api/oauth/${platform}/callback`
 
     const response = await fetch(config.tokenUrl, {

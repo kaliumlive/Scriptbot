@@ -36,6 +36,11 @@ const PLATFORM_METRICS: Record<string, (brandId: string, postId: string) => Prom
 export async function runAnalytics(brandId: string) {
     const supabase = createAdminClient()
     const historySync = await importConnectedPostHistory(brandId)
+    const { data: activeConnections } = await supabase
+        .from('platform_connections')
+        .select('platform')
+        .eq('brand_id', brandId)
+        .eq('is_active', true)
 
     // 1. Get published posts for the brand
     const { data: posts } = await supabase
@@ -50,6 +55,7 @@ export async function runAnalytics(brandId: string) {
             importedPosts: historySync.importedPosts,
             scannedPosts: historySync.scannedPosts,
             platformImports: historySync.platforms,
+            connectedPlatforms: (activeConnections ?? []).map((connection: { platform: string }) => connection.platform),
         }
     }
 
@@ -110,6 +116,7 @@ export async function runAnalytics(brandId: string) {
             importedPosts: historySync.importedPosts,
             scannedPosts: historySync.scannedPosts,
             platformImports: historySync.platforms,
+            connectedPlatforms: (activeConnections ?? []).map((connection: { platform: string }) => connection.platform),
             ai_insights
         }
     }
@@ -119,5 +126,6 @@ export async function runAnalytics(brandId: string) {
         importedPosts: historySync.importedPosts,
         scannedPosts: historySync.scannedPosts,
         platformImports: historySync.platforms,
+        connectedPlatforms: (activeConnections ?? []).map((connection: { platform: string }) => connection.platform),
     }
 }

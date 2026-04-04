@@ -30,7 +30,7 @@ export const OAUTH_CONFIGS: Record<string, OAuthPlatformConfig> = {
       'public_profile',
     ],
     scopeJoin: ',',
-    extraAuthParams: { config_id: process.env.INSTAGRAM_CONFIG_ID || '2760816937613550' },
+    extraAuthParams: process.env.INSTAGRAM_CONFIG_ID ? { config_id: process.env.INSTAGRAM_CONFIG_ID } : {},
     color: 'from-pink-500 to-rose-500',
     badge: 'IG',
     note: 'Read-only analytics — requires Business account linked to a Facebook Page',
