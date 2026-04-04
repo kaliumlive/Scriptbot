@@ -92,32 +92,29 @@ export async function runAnalytics(brandId: string) {
         }
     }
 
-    // 2. Generate AI insights for the brand dashboard
+    // 2. Generate AI insights — optional, never blocks metric delivery
+    let ai_insights: string | undefined
     if (allStats.length > 0) {
-        const insightsPrompt = `
+        try {
+            const insightsPrompt = `
         As an Agency Performance Lead, analyze these recent post metrics for brand ${brandId}:
         ${JSON.stringify(allStats.map(s => ({ platform: s.post.platform, ...s.stats })))}
-        
-        Provide a 2-sentence strategic "Command Center" insight. 
+
+        Provide a 2-sentence strategic "Command Center" insight.
         Focus on what's working (e.g. content types) and one actionable advice (e.g. "double down on reels").
         Keep it concise and professional.
         `
-        const ai_insights = await generateWithGroq(insightsPrompt)
+            ai_insights = await generateWithGroq(insightsPrompt)
 
-        // Persist to the latest snapshot so the UI can retrieve it
-        const latestSnapshotId = allStats[0].post.id
-        await supabase
-            .from('analytics_snapshots')
-            .update({ ai_insights })
-            .eq('published_post_id', latestSnapshotId)
-
-        return {
-            snapshotsCreated,
-            importedPosts: historySync.importedPosts,
-            scannedPosts: historySync.scannedPosts,
-            platformImports: historySync.platforms,
-            connectedPlatforms: (activeConnections ?? []).map((connection: { platform: string }) => connection.platform),
-            ai_insights
+            // Persist to the latest snapshot so the UI can retrieve it
+            const latestSnapshotId = allStats[0].post.id
+            await supabase
+                .from('analytics_snapshots')
+                .update({ ai_insights })
+                .eq('published_post_id', latestSnapshotId)
+        } catch (err) {
+            // Rate-limited or Groq down — metrics are already saved, just skip the blurb
+            console.warn('[Analytics] AI insights skipped:', err instanceof Error ? err.message : err)
         }
     }
 
@@ -127,5 +124,6 @@ export async function runAnalytics(brandId: string) {
         scannedPosts: historySync.scannedPosts,
         platformImports: historySync.platforms,
         connectedPlatforms: (activeConnections ?? []).map((connection: { platform: string }) => connection.platform),
+        ...(ai_insights ? { ai_insights } : {}),
     }
 }
