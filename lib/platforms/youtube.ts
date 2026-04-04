@@ -28,7 +28,7 @@ interface YouTubePlaylistItem {
 }
 
 /** Pick the best available thumbnail URL from YouTube's thumbnail object */
-function bestYouTubeThumbnail(thumbnails?: YouTubePlaylistItem['snippet']['thumbnails']): string | null {
+function bestYouTubeThumbnail(thumbnails?: NonNullable<YouTubePlaylistItem['snippet']>['thumbnails']): string | null {
     if (!thumbnails) return null
     return (
         thumbnails.maxres?.url ||
