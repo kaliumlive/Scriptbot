@@ -12,7 +12,7 @@ export function createInitiateHandler(platform: string) {
     const config = OAUTH_CONFIGS[platform]
     if (!config) return NextResponse.json({ error: 'Unknown platform' }, { status: 400 })
 
-    const clientId = process.env[config.envClientId]
+    const clientId = process.env[config.envClientId]?.trim()
     if (!clientId) {
       const url = new URL('/settings/connections', getAppUrl(request))
       url.searchParams.set('error', 'not_configured')
@@ -68,8 +68,8 @@ export function createCallbackHandler(platform: string) {
       brandId = state.brandId ?? ''
     } catch {}
 
-    const clientId = process.env[config.envClientId] ?? ''
-    const clientSecret = process.env[config.envClientSecret] ?? ''
+    const clientId = (process.env[config.envClientId] ?? '').trim()
+    const clientSecret = (process.env[config.envClientSecret] ?? '').trim()
     const redirectUri = `${appUrl}/api/oauth/${platform}/callback`
 
     try {
