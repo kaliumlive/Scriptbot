@@ -108,8 +108,28 @@ export default async function AnalyticsPage() {
     created_at: string
   }
 
+  type EnrichedPost = {
+    id: string
+    platform: string
+    platform_post_id: string
+    platform_post_url: string | null
+    title: string | null
+    caption: string | null
+    media_type: string | null
+    thumbnail_url: string | null
+    likes: number
+    comments: number
+    shares: number
+    saves: number
+    reach: number
+    views: number
+    impressions: number
+    published_at: string
+    crossPostedTo: string[]
+  }
+
   // Build enriched post data
-  const postsData = (allPosts ?? []).map((post: PostRecord) => {
+  const postsData: Omit<EnrichedPost, 'crossPostedTo'>[] = (allPosts ?? []).map((post: PostRecord) => {
     const s = latestSnapshots.get(post.id) || { likes: 0, comments: 0, reach: 0, shares: 0, saves: 0, views: 0, impressions: 0 }
     return {
       id: post.id,
@@ -131,8 +151,6 @@ export default async function AnalyticsPage() {
     }
   })
 
-  type EnrichedPost = (typeof postsData)[number]
-
   // ── Cross-post grouping ──────────────────────────────────────────────────
   // Normalize a title for comparison: lowercase, strip emoji/punctuation, collapse whitespace
   function normalizeTitle(title: string): string {
@@ -144,8 +162,10 @@ export default async function AnalyticsPage() {
       .trim()
   }
 
+  type PostWithoutCross = Omit<EnrichedPost, 'crossPostedTo'>
+
   // Group posts by normalized title — posts with the same title across platforms are cross-posts
-  const titleGroups = new Map<string, EnrichedPost[]>()
+  const titleGroups = new Map<string, PostWithoutCross[]>()
   for (const post of postsData) {
     if (!post.title) continue
     const key = normalizeTitle(post.title)
@@ -158,7 +178,7 @@ export default async function AnalyticsPage() {
   const crossPostMap = new Map<string, string[]>()
   for (const group of titleGroups.values()) {
     if (group.length > 1) {
-      const platforms = group.map((p: EnrichedPost) => p.platform)
+      const platforms = group.map((p: PostWithoutCross) => p.platform)
       for (const post of group) {
         crossPostMap.set(post.id, platforms.filter((pl: string) => pl !== post.platform))
       }
@@ -166,7 +186,7 @@ export default async function AnalyticsPage() {
   }
 
   // Attach cross-post info
-  const enrichedPosts = postsData.map((post) => ({
+  const enrichedPosts: EnrichedPost[] = postsData.map((post: PostWithoutCross) => ({
     ...post,
     crossPostedTo: crossPostMap.get(post.id) || [],
   }))
