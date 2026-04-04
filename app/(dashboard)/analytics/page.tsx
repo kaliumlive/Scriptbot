@@ -13,13 +13,13 @@ export default async function AnalyticsPage() {
 
   if (!brandId) return <div className="p-6 text-zinc-400">Brand not found</div>
 
-  // 1. Fetch latest published posts for the table
-  const { data: recentPosts } = await supabase
+  // Fetch all published posts — no arbitrary row cap, we need everything for cross-post detection
+  const { data: allPosts } = await supabase
     .from('published_posts')
     .select('*')
     .eq('brand_id', brandId)
     .order('published_at', { ascending: false })
-    .limit(10)
+    .limit(200)
 
   const [{ data: allSnapshots }, { count: totalPostsCount }, { data: activeConnections }] = await Promise.all([
     supabase
@@ -38,14 +38,6 @@ export default async function AnalyticsPage() {
       .eq('is_active', true),
   ])
 
-  // 2. Fetch recent post snapshots for the table
-  const recentPostIds = recentPosts?.map((p: { id: string }) => p.id) || []
-  const { data: recentSnapshots } = await supabase
-    .from('analytics_snapshots')
-    .select('*')
-    .in('published_post_id', recentPostIds)
-    .order('snapshot_at', { ascending: false })
-
   type SnapshotRecord = {
     published_post_id: string
     likes: number
@@ -54,8 +46,10 @@ export default async function AnalyticsPage() {
     shares: number
     saves: number
     views: number
+    impressions: number
   }
 
+  // Build latest + previous snapshots per post
   const latestSnapshots = new Map<string, SnapshotRecord>()
   const previousSnapshots = new Map<string, SnapshotRecord>()
   allSnapshots?.forEach((s: SnapshotRecord) => {
@@ -66,17 +60,11 @@ export default async function AnalyticsPage() {
     }
   })
 
-  const latestRecentSnapshots = new Map<string, SnapshotRecord>()
-  recentSnapshots?.forEach((s: SnapshotRecord) => {
-    if (!latestRecentSnapshots.has(s.published_post_id)) {
-      latestRecentSnapshots.set(s.published_post_id, s)
-    }
-  })
-
-  // 3. Aggregate stats
+  // Aggregate totals
   const aggregateStats = {
     totalReach: 0,
     totalEngagement: 0,
+    totalViews: 0,
     totalPosts: totalPostsCount || 0,
     growthRate: 0,
     reachTrend: 0,
@@ -87,33 +75,11 @@ export default async function AnalyticsPage() {
   let previousReach = 0
   let previousEngagement = 0
 
-  const recentPostsData = recentPosts?.map((post: { id: string, platform: string, platform_post_id?: string, title?: string, published_at?: string, created_at: string }) => {
-    const s = latestRecentSnapshots.get(post.id) || { likes: 0, comments: 0, reach: 0, shares: 0, saves: 0, views: 0 }
-    const likes = s.likes || 0
-    const comments = s.comments || 0
-    const reach = s.reach || 0
-    const shares = s.shares || 0
-    const saves = s.saves || 0
-
-    return {
-      id: post.id,
-      platform: post.platform,
-      title: post.title || `${post.platform} post ${post.platform_post_id?.slice(0, 8) || post.id.slice(0, 8)}`,
-      likes,
-      comments,
-      shares,
-      saves,
-      reach,
-      views: s.views || 0,
-      published_at: post.published_at || post.created_at
-    }
-  }) || []
-
   latestSnapshots.forEach((s) => {
     aggregateStats.totalReach += s.reach || 0
+    aggregateStats.totalViews += s.views || 0
     aggregateStats.totalEngagement += (s.likes || 0) + (s.comments || 0) + (s.shares || 0) + (s.saves || 0)
   })
-
   previousSnapshots.forEach((s) => {
     previousReach += s.reach || 0
     previousEngagement += (s.likes || 0) + (s.comments || 0) + (s.shares || 0) + (s.saves || 0)
@@ -128,11 +94,84 @@ export default async function AnalyticsPage() {
     ? Number((((currentEngagement - previousEngagement) / previousEngagement) * 100).toFixed(1))
     : 0
   aggregateStats.growthRate = aggregateStats.reachTrend
-  aggregateStats.postTrend = 0
 
-  // Get AI insight from the latest global snapshot or most recent post insight
-  const aiInsight = allSnapshots?.[0]?.ai_insights || "Your autonomous agency is tracking performance. Sync Platforms will import connected post history and refresh your latest metrics."
-  const activePlatformNames = activeConnections?.map((connection: { platform: string }) => connection.platform) || []
+  type PostRecord = {
+    id: string
+    platform: string
+    platform_post_id?: string
+    platform_post_url?: string
+    title?: string
+    caption?: string
+    media_type?: string
+    thumbnail_url?: string
+    published_at?: string
+    created_at: string
+  }
+
+  // Build enriched post data
+  const postsData = (allPosts ?? []).map((post: PostRecord) => {
+    const s = latestSnapshots.get(post.id) || { likes: 0, comments: 0, reach: 0, shares: 0, saves: 0, views: 0, impressions: 0 }
+    return {
+      id: post.id,
+      platform: post.platform,
+      platform_post_id: post.platform_post_id || '',
+      platform_post_url: post.platform_post_url || null,
+      title: post.title || null,
+      caption: post.caption || null,
+      media_type: post.media_type || null,
+      thumbnail_url: post.thumbnail_url || null,
+      likes: s.likes || 0,
+      comments: s.comments || 0,
+      shares: s.shares || 0,
+      saves: s.saves || 0,
+      reach: s.reach || 0,
+      views: s.views || 0,
+      impressions: s.impressions || 0,
+      published_at: post.published_at || post.created_at,
+    }
+  })
+
+  // ── Cross-post grouping ──────────────────────────────────────────────────
+  // Normalize a title for comparison: lowercase, strip emoji/punctuation, collapse whitespace
+  function normalizeTitle(title: string): string {
+    return title
+      .toLowerCase()
+      .replace(/[\u{1F000}-\u{1FFFF}]/gu, '') // strip emoji
+      .replace(/[^\w\s]/g, '')                  // strip punctuation
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
+  // Group posts by normalized title — posts with the same title across platforms are cross-posts
+  const titleGroups = new Map<string, typeof postsData>()
+  for (const post of postsData) {
+    if (!post.title) continue
+    const key = normalizeTitle(post.title)
+    if (!key) continue
+    const existing = titleGroups.get(key) || []
+    titleGroups.set(key, [...existing, post])
+  }
+
+  // Build a map: postId → list of other platforms it was cross-posted to
+  const crossPostMap = new Map<string, string[]>()
+  for (const group of titleGroups.values()) {
+    if (group.length > 1) {
+      const platforms = group.map((p) => p.platform)
+      for (const post of group) {
+        crossPostMap.set(post.id, platforms.filter((pl) => pl !== post.platform))
+      }
+    }
+  }
+
+  // Attach cross-post info
+  const enrichedPosts = postsData.map((post) => ({
+    ...post,
+    crossPostedTo: crossPostMap.get(post.id) || [],
+  }))
+
+  const aiInsight = allSnapshots?.[0]?.ai_insights ||
+    "Your autonomous agency is tracking performance. Sync Platforms will import connected post history and refresh your latest metrics."
+  const activePlatformNames = activeConnections?.map((c: { platform: string }) => c.platform) || []
   const hasServiceRoleKey = hasRealSupabaseServiceRoleKey()
   const showNoConnectionsState = activePlatformNames.length === 0
   const showNoPostsState = !showNoConnectionsState && aggregateStats.totalPosts === 0
@@ -144,7 +183,7 @@ export default async function AnalyticsPage() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
-               <Layers className="w-4 h-4 text-indigo-400" />
+              <Layers className="w-4 h-4 text-indigo-400" />
             </div>
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Autonomous Intelligence</span>
           </div>
@@ -152,12 +191,10 @@ export default async function AnalyticsPage() {
             Performance <span className="text-zinc-500">Command Center</span>
           </h1>
           <p className="text-zinc-400 text-sm mt-3 max-w-xl leading-relaxed">
-            Real-time engagement tracking across connected platforms. Sync Platforms imports supported post history first, then refreshes analytics snapshots for the tracked posts.
+            Real-time engagement tracking across connected platforms. Sync Platforms imports post history and refreshes analytics.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-           <RunAnalyticsButton brandId={brandId} />
-        </div>
+        <RunAnalyticsButton brandId={brandId} />
       </div>
 
       {!hasServiceRoleKey && (
@@ -166,7 +203,7 @@ export default async function AnalyticsPage() {
           <div>
             <h2 className="text-sm font-black text-amber-200 uppercase tracking-[0.1em] mb-1">Backend Config Blocking Sync</h2>
             <p className="text-sm text-amber-100/90 leading-relaxed">
-              `SUPABASE_SERVICE_ROLE_KEY` is missing or matches the anon key. Analytics imports and background snapshots will not be reliable until that is fixed.
+              `SUPABASE_SERVICE_ROLE_KEY` is missing or matches the anon key. Analytics imports and background snapshots will not be reliable.
             </p>
           </div>
         </div>
@@ -177,7 +214,7 @@ export default async function AnalyticsPage() {
           <div className="space-y-2">
             <h2 className="text-lg font-bold text-white">No platforms connected</h2>
             <p className="text-sm text-zinc-400 max-w-2xl leading-relaxed">
-              Analytics is wired correctly, but there is nothing to import yet. Connect Instagram or YouTube first. Historical import currently runs for Instagram and YouTube; TikTok and LinkedIn still need their backfill implementation.
+              Connect Instagram or YouTube first, then click Sync Platforms to import your post history.
             </p>
           </div>
           <Link
@@ -195,16 +232,15 @@ export default async function AnalyticsPage() {
           <div>
             <h2 className="text-lg font-bold text-white">No imported posts yet</h2>
             <p className="text-sm text-zinc-400 max-w-2xl leading-relaxed">
-              Connected platforms: {activePlatformNames.join(', ')}. Click <strong className="text-zinc-200">Sync Platforms</strong> to import post history, then refresh analytics snapshots for those posts.
+              Connected: {activePlatformNames.join(', ')}. Click <strong className="text-zinc-200">Sync Platforms</strong> to import post history.
             </p>
           </div>
         </div>
       )}
 
-      {/* Main Dashboard Content */}
-      <PerformanceDashboard 
+      <PerformanceDashboard
         stats={aggregateStats}
-        recentPosts={recentPostsData}
+        posts={enrichedPosts}
         aiInsight={aiInsight}
       />
     </div>
