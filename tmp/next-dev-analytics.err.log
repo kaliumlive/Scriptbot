@@ -1,0 +1,12 @@
+⨯ ./app/(dashboard)/ideate/page.tsx:4:1
+Module not found: Can't resolve '@/components/ideate/TrendReports'
+  2 | import { createAdminClient } from '@/lib/supabase/admin'
+  3 | import IdeateClient from '@/components/ideate/IdeateClient'
+> 4 | import TrendReports from '@/components/ideate/TrendReports'
+    | ^
+  5 | import Link from 'next/link'
+  6 |
+  7 | export default async function IdeatePage() {
+
+https://nextjs.org/docs/messages/module-not-found
+^C^C

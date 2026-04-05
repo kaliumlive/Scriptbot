@@ -326,24 +326,6 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
-// Validate ../../app/api/oauth/linkedin/callback/route.ts
-{
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/oauth/linkedin/callback">> = Specific
-  const handler = {} as typeof import("../../app/api/oauth/linkedin/callback/route.js")
-  type __Check = __IsExpected<typeof handler>
-  // @ts-ignore
-  type __Unused = __Check
-}
-
-// Validate ../../app/api/oauth/linkedin/route.ts
-{
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/oauth/linkedin">> = Specific
-  const handler = {} as typeof import("../../app/api/oauth/linkedin/route.js")
-  type __Check = __IsExpected<typeof handler>
-  // @ts-ignore
-  type __Unused = __Check
-}
-
 // Validate ../../app/api/oauth/tiktok/callback/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/oauth/tiktok/callback">> = Specific

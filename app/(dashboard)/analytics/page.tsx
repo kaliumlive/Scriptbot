@@ -1,9 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import RunAnalyticsButton from '@/components/analytics/RunAnalyticsButton'
 import PerformanceDashboard from '@/components/analytics/PerformanceDashboard'
 import { AlertCircle, Layers } from 'lucide-react'
 import Link from 'next/link'
 import { hasRealSupabaseServiceRoleKey } from '@/lib/utils/app-origin'
+import { getInstagramChannelStats } from '@/lib/platforms/instagram'
+import { getYouTubeChannelStats } from '@/lib/platforms/youtube'
+import type { ChannelStats } from '@/lib/platforms/instagram'
 
 export default async function AnalyticsPage() {
   const supabase = await createClient()
@@ -13,15 +17,20 @@ export default async function AnalyticsPage() {
 
   if (!brandId) return <div className="p-6 text-zinc-400">Brand not found</div>
 
-  // Fetch all published posts — no arbitrary row cap, we need everything for cross-post detection
-  const { data: allPosts } = await supabase
-    .from('published_posts')
-    .select('*')
-    .eq('brand_id', brandId)
-    .order('published_at', { ascending: false })
-    .limit(200)
-
-  const [{ data: allSnapshots }, { count: totalPostsCount }, { data: activeConnections }] = await Promise.all([
+  // Fetch everything in parallel
+  const [
+    { data: allPosts },
+    { data: allSnapshots },
+    { count: totalPostsCount },
+    { data: activeConnections },
+    { data: postLinks },
+  ] = await Promise.all([
+    supabase
+      .from('published_posts')
+      .select('*')
+      .eq('brand_id', brandId)
+      .order('published_at', { ascending: false })
+      .limit(500),
     supabase
       .from('analytics_snapshots')
       .select('*')
@@ -36,7 +45,28 @@ export default async function AnalyticsPage() {
       .select('platform')
       .eq('brand_id', brandId)
       .eq('is_active', true),
+    // post_links may not exist yet if migration hasn't run — that's fine
+    createAdminClient()
+      .from('post_links')
+      .select('post_id_a, post_id_b')
+      .eq('brand_id', brandId)
+      .then(r => ({ data: r.data ?? [] }))
+      .catch(() => ({ data: [] })),
   ])
+
+  // Fetch channel stats for each connected platform (best-effort, never crash)
+  const channelStats: ChannelStats[] = []
+  for (const conn of activeConnections ?? []) {
+    try {
+      if (conn.platform === 'instagram') {
+        const s = await getInstagramChannelStats(brandId)
+        if (s) channelStats.push(s)
+      } else if (conn.platform === 'youtube') {
+        const s = await getYouTubeChannelStats(brandId)
+        if (s) channelStats.push(s)
+      }
+    } catch { /* ignore — channel stats are non-critical */ }
+  }
 
   type SnapshotRecord = {
     published_post_id: string
@@ -47,6 +77,7 @@ export default async function AnalyticsPage() {
     saves: number
     views: number
     impressions: number
+    ai_insights?: string
   }
 
   // Build latest + previous snapshots per post
@@ -62,16 +93,10 @@ export default async function AnalyticsPage() {
 
   // Aggregate totals
   const aggregateStats = {
-    totalReach: 0,
-    totalEngagement: 0,
-    totalViews: 0,
-    totalPosts: totalPostsCount || 0,
-    growthRate: 0,
-    reachTrend: 0,
-    engagementTrend: 0,
-    postTrend: 0,
+    totalReach: 0, totalEngagement: 0, totalViews: 0,
+    totalPosts: totalPostsCount || 0, growthRate: 0,
+    reachTrend: 0, engagementTrend: 0, postTrend: 0,
   }
-
   let previousReach = 0
   let previousEngagement = 0
 
@@ -88,11 +113,9 @@ export default async function AnalyticsPage() {
   const currentReach = aggregateStats.totalReach
   const currentEngagement = aggregateStats.totalEngagement
   aggregateStats.reachTrend = previousReach > 0
-    ? Number((((currentReach - previousReach) / previousReach) * 100).toFixed(1))
-    : 0
+    ? Number((((currentReach - previousReach) / previousReach) * 100).toFixed(1)) : 0
   aggregateStats.engagementTrend = previousEngagement > 0
-    ? Number((((currentEngagement - previousEngagement) / previousEngagement) * 100).toFixed(1))
-    : 0
+    ? Number((((currentEngagement - previousEngagement) / previousEngagement) * 100).toFixed(1)) : 0
   aggregateStats.growthRate = aggregateStats.reachTrend
 
   type PostRecord = {
@@ -126,10 +149,13 @@ export default async function AnalyticsPage() {
     impressions: number
     published_at: string
     crossPostedTo: string[]
+    linkedPostIds: string[]
   }
 
+  type PostWithoutCross = Omit<EnrichedPost, 'crossPostedTo' | 'linkedPostIds'>
+
   // Build enriched post data
-  const postsData: Omit<EnrichedPost, 'crossPostedTo'>[] = (allPosts ?? []).map((post: PostRecord) => {
+  const postsData: PostWithoutCross[] = (allPosts ?? []).map((post: PostRecord) => {
     const s = latestSnapshots.get(post.id) || { likes: 0, comments: 0, reach: 0, shares: 0, saves: 0, views: 0, impressions: 0 }
     return {
       id: post.id,
@@ -151,48 +177,68 @@ export default async function AnalyticsPage() {
     }
   })
 
-  // ── Cross-post grouping ──────────────────────────────────────────────────
-  // Normalize a title for comparison: lowercase, strip emoji/punctuation, collapse whitespace
+  // Build cross-post map — combines auto-detection (title match) + manual links
+
   function normalizeTitle(title: string): string {
-    return title
-      .toLowerCase()
-      .replace(/[\u{1F000}-\u{1FFFF}]/gu, '') // strip emoji
-      .replace(/[^\w\s]/g, '')                  // strip punctuation
-      .replace(/\s+/g, ' ')
-      .trim()
+    return title.toLowerCase()
+      .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+      .replace(/[^\w\s]/g, '')
+      .replace(/\s+/g, ' ').trim()
   }
 
-  type PostWithoutCross = Omit<EnrichedPost, 'crossPostedTo'>
+  const postById = new Map(postsData.map(p => [p.id, p]))
 
-  // Group posts by normalized title — posts with the same title across platforms are cross-posts
+  // Auto: group by normalized title
   const titleGroups = new Map<string, PostWithoutCross[]>()
   for (const post of postsData) {
     if (!post.title) continue
     const key = normalizeTitle(post.title)
     if (!key) continue
-    const existing = titleGroups.get(key) || []
-    titleGroups.set(key, [...existing, post])
+    titleGroups.set(key, [...(titleGroups.get(key) || []), post])
   }
 
-  // Build a map: postId → list of other platforms it was cross-posted to
-  const crossPostMap = new Map<string, string[]>()
+  const crossPostMap = new Map<string, string[]>()   // postId → other platforms
+  const linkedPostsMap = new Map<string, string[]>() // postId → linked postIds
+
   for (const group of titleGroups.values()) {
     if (group.length > 1) {
-      const platforms = group.map((p: PostWithoutCross) => p.platform)
+      const platforms = group.map(p => p.platform)
       for (const post of group) {
-        crossPostMap.set(post.id, platforms.filter((pl: string) => pl !== post.platform))
+        crossPostMap.set(post.id, platforms.filter(pl => pl !== post.platform))
+        linkedPostsMap.set(post.id, group.filter(p => p.id !== post.id).map(p => p.id))
       }
     }
   }
 
-  // Attach cross-post info
+  // Manual links: merge into the same maps
+  for (const link of (postLinks as { post_id_a: string; post_id_b: string }[] | null) ?? []) {
+    const postA = postById.get(link.post_id_a)
+    const postB = postById.get(link.post_id_b)
+    if (!postA || !postB) continue
+
+    // Cross-platform list
+    const aList = crossPostMap.get(link.post_id_a) || []
+    if (!aList.includes(postB.platform)) crossPostMap.set(link.post_id_a, [...aList, postB.platform])
+    const bList = crossPostMap.get(link.post_id_b) || []
+    if (!bList.includes(postA.platform)) crossPostMap.set(link.post_id_b, [...bList, postA.platform])
+
+    // Linked post IDs
+    const aLinked = linkedPostsMap.get(link.post_id_a) || []
+    if (!aLinked.includes(link.post_id_b)) linkedPostsMap.set(link.post_id_a, [...aLinked, link.post_id_b])
+    const bLinked = linkedPostsMap.get(link.post_id_b) || []
+    if (!bLinked.includes(link.post_id_a)) linkedPostsMap.set(link.post_id_b, [...bLinked, link.post_id_a])
+  }
+
   const enrichedPosts: EnrichedPost[] = postsData.map((post: PostWithoutCross) => ({
     ...post,
     crossPostedTo: crossPostMap.get(post.id) || [],
+    linkedPostIds: linkedPostsMap.get(post.id) || [],
   }))
 
-  const aiInsight = allSnapshots?.[0]?.ai_insights ||
-    "Your autonomous agency is tracking performance. Sync Platforms will import connected post history and refresh your latest metrics."
+  // Only show the AI insight if it's a real generated insight (not just placeholder text)
+  const rawInsight = allSnapshots?.find(s => s.ai_insights)?.ai_insights
+  const aiInsight = rawInsight && !rawInsight.includes('Sync Platforms') ? rawInsight : undefined
+
   const activePlatformNames = activeConnections?.map((c: { platform: string }) => c.platform) || []
   const hasServiceRoleKey = hasRealSupabaseServiceRoleKey()
   const showNoConnectionsState = activePlatformNames.length === 0
@@ -225,7 +271,7 @@ export default async function AnalyticsPage() {
           <div>
             <h2 className="text-sm font-black text-amber-200 uppercase tracking-[0.1em] mb-1">Backend Config Blocking Sync</h2>
             <p className="text-sm text-amber-100/90 leading-relaxed">
-              `SUPABASE_SERVICE_ROLE_KEY` is missing or matches the anon key. Analytics imports and background snapshots will not be reliable.
+              SUPABASE_SERVICE_ROLE_KEY is missing or matches the anon key. Analytics imports will not be reliable.
             </p>
           </div>
         </div>
@@ -239,10 +285,8 @@ export default async function AnalyticsPage() {
               Connect Instagram or YouTube first, then click Sync Platforms to import your post history.
             </p>
           </div>
-          <Link
-            href="/settings/connections"
-            className="shrink-0 rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-bold text-zinc-200 hover:bg-zinc-700 transition-colors"
-          >
+          <Link href="/settings/connections"
+            className="shrink-0 rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-bold text-zinc-200 hover:bg-zinc-700 transition-colors">
             Open Connections
           </Link>
         </div>
@@ -263,6 +307,8 @@ export default async function AnalyticsPage() {
       <PerformanceDashboard
         stats={aggregateStats}
         posts={enrichedPosts}
+        channelStats={channelStats}
+        brandId={brandId}
         aiInsight={aiInsight}
       />
     </div>

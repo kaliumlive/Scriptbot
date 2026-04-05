@@ -269,3 +269,51 @@ export async function getYouTubeMetrics(brandId: string, platformPostId: string)
         return { likes: 0, comments: 0, shares: 0, saves: 0, reach: 0, impressions: 0, views: 0 }
     }
 }
+
+export interface ChannelStats {
+    platform: string
+    username: string | null
+    displayName: string | null
+    followers: number | null
+    posts: number | null
+    totalViews: number | null
+    profilePictureUrl: string | null
+}
+
+export async function getYouTubeChannelStats(brandId: string): Promise<ChannelStats | null> {
+    const supabase = createAdminClient()
+    const { data: connection } = await supabase
+        .from('platform_connections')
+        .select('access_token, refresh_token, token_expires_at')
+        .eq('brand_id', brandId)
+        .eq('platform', 'youtube')
+        .eq('is_active', true)
+        .single()
+
+    if (!connection?.access_token) return null
+
+    let accessToken = connection.access_token
+    if (connection.token_expires_at && new Date(connection.token_expires_at) < new Date()) {
+        accessToken = await refreshYouTubeToken(connection.refresh_token, brandId)
+    }
+
+    const res = await fetch(
+        'https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true',
+        { headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' } }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const channel = data.items?.[0]
+    if (!channel) return null
+
+    const stats = channel.statistics || {}
+    return {
+        platform: 'youtube',
+        username: channel.snippet?.customUrl || null,
+        displayName: channel.snippet?.title || null,
+        followers: stats.hiddenSubscriberCount ? null : parseInt(stats.subscriberCount || '0', 10),
+        posts: parseInt(stats.videoCount || '0', 10),
+        totalViews: parseInt(stats.viewCount || '0', 10),
+        profilePictureUrl: channel.snippet?.thumbnails?.default?.url || null,
+    }
+}

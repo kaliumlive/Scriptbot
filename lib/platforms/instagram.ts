@@ -230,3 +230,44 @@ export async function getInstagramMetrics(brandId: string, platformPostId: strin
         return { likes: 0, comments: 0, shares: 0, saves: 0, reach: 0, impressions: 0, views: 0 }
     }
 }
+
+export interface ChannelStats {
+    platform: string
+    username: string | null
+    displayName: string | null
+    followers: number | null
+    posts: number | null
+    totalViews: number | null
+    profilePictureUrl: string | null
+}
+
+export async function getInstagramChannelStats(brandId: string): Promise<ChannelStats | null> {
+    const supabase = createAdminClient()
+    const { data: connections } = await supabase
+        .from('platform_connections')
+        .select('access_token')
+        .eq('brand_id', brandId)
+        .eq('platform', 'instagram')
+        .eq('is_active', true)
+        .limit(1)
+
+    const token = connections?.[0]?.access_token
+    if (!token) return null
+
+    const res = await fetch(
+        `https://graph.instagram.com/me?fields=id,username,name,followers_count,media_count,profile_picture_url&access_token=${token}`
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    if (data.error) return null
+
+    return {
+        platform: 'instagram',
+        username: data.username || null,
+        displayName: data.name || null,
+        followers: typeof data.followers_count === 'number' ? data.followers_count : null,
+        posts: typeof data.media_count === 'number' ? data.media_count : null,
+        totalViews: null,
+        profilePictureUrl: data.profile_picture_url || null,
+    }
+}

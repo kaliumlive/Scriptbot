@@ -51,3 +51,5 @@ __pycache__/
 .agent/
 _agents/
 _agent/
+
+.vercel
