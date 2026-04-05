@@ -52,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
 
   return (
-    <div className="flex min-h-screen bg-[#09090b]">
+    <div className="flex h-screen bg-[#09090b]">
       <aside className="w-[200px] shrink-0 border-r border-white/[0.05] flex flex-col">
         {/* Logo */}
         <div className="h-[56px] flex items-center px-4 border-b border-white/[0.05]">

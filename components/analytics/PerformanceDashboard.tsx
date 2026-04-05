@@ -316,7 +316,7 @@ function ChannelCard({ ch }: { ch: ChannelStats }) {
       <div className="flex-1 min-w-0">
         <div className="mb-0.5"><PlatformBadge platform={ch.platform} /></div>
         <p className="text-white font-bold text-sm truncate">{ch.displayName || ch.username || ch.platform}</p>
-        {ch.username && ch.displayName && <p className={`text-xs ${c.text} truncate`}>@{ch.username}</p>}
+        {ch.username && ch.displayName && <p className={`text-xs ${c.text} truncate`}>{ch.username.startsWith('@') ? ch.username : `@${ch.username}`}</p>}
         <div className="flex flex-wrap gap-3 mt-1.5">
           {ch.followers !== null && (
             <span className="flex items-center gap-1 text-[11px] text-zinc-400">
