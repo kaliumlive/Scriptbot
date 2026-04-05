@@ -46,12 +46,12 @@ export default async function AnalyticsPage() {
       .eq('brand_id', brandId)
       .eq('is_active', true),
     // post_links may not exist yet if migration hasn't run — that's fine
-    createAdminClient()
-      .from('post_links')
-      .select('post_id_a, post_id_b')
-      .eq('brand_id', brandId)
-      .then(r => ({ data: r.data ?? [] }))
-      .catch(() => ({ data: [] })),
+    Promise.resolve(
+      createAdminClient()
+        .from('post_links')
+        .select('post_id_a, post_id_b')
+        .eq('brand_id', brandId)
+    ).then(r => ({ data: r.data ?? [] })).catch(() => ({ data: [] })),
   ])
 
   // Fetch channel stats for each connected platform (best-effort, never crash)
