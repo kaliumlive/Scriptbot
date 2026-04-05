@@ -236,7 +236,7 @@ export default async function AnalyticsPage() {
   }))
 
   // Only show the AI insight if it's a real generated insight (not just placeholder text)
-  const rawInsight = allSnapshots?.find(s => s.ai_insights)?.ai_insights
+  const rawInsight = allSnapshots?.find((s: SnapshotRecord) => s.ai_insights)?.ai_insights
   const aiInsight = rawInsight && !rawInsight.includes('Sync Platforms') ? rawInsight : undefined
 
   const activePlatformNames = activeConnections?.map((c: { platform: string }) => c.platform) || []
