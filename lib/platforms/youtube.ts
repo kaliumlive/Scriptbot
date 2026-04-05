@@ -27,6 +27,12 @@ interface YouTubePlaylistItem {
     contentDetails?: { videoPublishedAt?: string }
 }
 
+/** Detect YouTube Shorts by title hashtag — duration-based detection would need extra API call */
+function isYouTubeShort(title: string, _videoId: string): boolean {
+    const t = title.toLowerCase()
+    return t.includes('#shorts') || t.includes('#short') || t.includes('#ytshorts')
+}
+
 /** Pick the best available thumbnail URL from YouTube's thumbnail object */
 function bestYouTubeThumbnail(thumbnails?: NonNullable<YouTubePlaylistItem['snippet']>['thumbnails']): string | null {
     if (!thumbnails) return null
@@ -130,17 +136,21 @@ export async function importYouTubePublishedPosts(brandId: string, limit: number
             .map((item) => {
                 const videoId = item.snippet?.resourceId?.videoId
                 if (!videoId) return null
+                const title = item.snippet?.title || 'YouTube Video'
+                const isShort = isYouTubeShort(title, videoId)
                 return {
                     brand_id: brandId,
                     platform: 'youtube',
                     platform_post_id: videoId,
-                    platform_post_url: `https://www.youtube.com/watch?v=${videoId}`,
+                    platform_post_url: isShort
+                        ? `https://www.youtube.com/shorts/${videoId}`
+                        : `https://www.youtube.com/watch?v=${videoId}`,
                     published_at:
                         item.contentDetails?.videoPublishedAt ||
                         item.snippet?.publishedAt ||
                         new Date().toISOString(),
-                    title: item.snippet?.title || `YouTube Video`,
-                    media_type: 'video',
+                    title,
+                    media_type: isShort ? 'SHORT' : 'video',
                     thumbnail_url: bestYouTubeThumbnail(item.snippet?.thumbnails),
                 }
             })
@@ -160,11 +170,16 @@ export async function importYouTubePublishedPosts(brandId: string, limit: number
     for (const item of backfillItems) {
         const videoId = item.snippet?.resourceId?.videoId
         if (!videoId) continue
+        const title = item.snippet?.title || 'YouTube Video'
+        const isShort = isYouTubeShort(title, videoId)
         await supabase
             .from('published_posts')
             .update({
-                title: item.snippet?.title || 'YouTube Video',
-                media_type: 'video',
+                title,
+                media_type: isShort ? 'SHORT' : 'video',
+                platform_post_url: isShort
+                    ? `https://www.youtube.com/shorts/${videoId}`
+                    : `https://www.youtube.com/watch?v=${videoId}`,
                 thumbnail_url: bestYouTubeThumbnail(item.snippet?.thumbnails),
             })
             .eq('brand_id', brandId)

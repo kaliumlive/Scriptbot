@@ -76,9 +76,20 @@ const DEFAULT_COLOR = { bg: 'bg-zinc-800', text: 'text-zinc-400', border: 'borde
 
 const MEDIA_TYPE_ICONS: Record<string, React.ElementType> = {
   VIDEO: Film, REELS: PlayCircle, IMAGE: ImageOff, CAROUSEL_ALBUM: Copy, video: Film,
+  SHORT: PlayCircle,
 }
 const MEDIA_TYPE_LABELS: Record<string, string> = {
   VIDEO: 'Video', REELS: 'Reel', IMAGE: 'Photo', CAROUSEL_ALBUM: 'Carousel', video: 'Video',
+  SHORT: 'Short',
+}
+
+type ContentCategory = 'shortform' | 'carousel' | 'longform' | 'photo'
+
+const CATEGORY_LABELS: Record<ContentCategory, string> = {
+  shortform: '⚡ Short-form',
+  carousel:  '🎠 Carousel',
+  longform:  '🎬 Long-form',
+  photo:     '📷 Photo',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -90,6 +101,25 @@ function fmt(n: number): string {
 }
 function eng(p: PostData) { return p.likes + p.comments + p.saves }
 function pc(platform: string) { return PLATFORM_COLORS[platform] ?? DEFAULT_COLOR }
+
+function getContentCategory(post: PostData): ContentCategory {
+  const mt = (post.media_type ?? '').toUpperCase()
+  // Explicit carousel
+  if (mt === 'CAROUSEL_ALBUM') return 'carousel'
+  // Instagram Reels / TikTok = always short-form
+  if (mt === 'REELS' || post.platform === 'tiktok') return 'shortform'
+  // Photo
+  if (mt === 'IMAGE' || mt === 'FEED') return 'photo'
+  // YouTube / Instagram video: detect Shorts by URL pattern or #shorts hashtag
+  if (mt === 'VIDEO' || mt === 'video') {
+    const url   = post.platform_post_url?.toLowerCase() ?? ''
+    const title = post.title?.toLowerCase() ?? ''
+    const cap   = post.caption?.toLowerCase() ?? ''
+    if (url.includes('/shorts/') || title.includes('#shorts') || cap.includes('#shorts')) return 'shortform'
+    return 'longform'
+  }
+  return 'longform'
+}
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -325,12 +355,17 @@ function LinkModal({ post, allPosts, existingLinks, onClose, onLinked }: {
   const [linking, setLinking] = useState<string | null>(null)
   const [unlinking, setUnlinking] = useState<string | null>(null)
 
+  const sourceCategory = getContentCategory(post)
+  const canLink = sourceCategory === 'shortform'
+
   const otherPlatformPosts = useMemo(() =>
     allPosts
       .filter(p => p.platform !== post.platform && p.id !== post.id)
+      // Only short-form posts can be linked — must be same category
+      .filter(p => canLink && getContentCategory(p) === 'shortform')
       .filter(p => !search || (p.title || p.platform_post_id).toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime()),
-    [allPosts, post, search]
+    [allPosts, post, search, canLink]
   )
 
   const handleLink = async (targetId: string) => {
@@ -372,7 +407,8 @@ function LinkModal({ post, allPosts, existingLinks, onClose, onLinked }: {
               <h3 className="text-white font-bold">Link to another platform</h3>
             </div>
             <p className="text-zinc-500 text-xs">
-              Connect <span className="text-zinc-300 font-medium">{(post.title || post.platform_post_id).slice(0, 40)}</span> to the same content on another platform.
+              Connect <span className="text-zinc-300 font-medium">{(post.title || post.platform_post_id).slice(0, 40)}</span> to the same short-form content on another platform.{' '}
+              <span className="text-indigo-500/70">Reels · Shorts · TikToks only.</span>
             </p>
           </div>
           <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 shrink-0 mt-0.5"><X className="w-4 h-4" /></button>
@@ -385,8 +421,10 @@ function LinkModal({ post, allPosts, existingLinks, onClose, onLinked }: {
           </div>
         </div>
         <div className="overflow-y-auto flex-1 divide-y divide-white/[0.04]">
-          {otherPlatformPosts.length === 0
-            ? <div className="p-10 text-center text-zinc-600 text-sm">{search ? 'No matching posts found' : 'No posts on other platforms to link'}</div>
+          {!canLink
+            ? <div className="p-10 text-center text-zinc-600 text-sm">Only <span className="text-zinc-400 font-semibold">short-form content</span> can be linked across platforms.<br /><span className="text-xs mt-1 block">Reels, Shorts, and TikToks only.</span></div>
+            : otherPlatformPosts.length === 0
+            ? <div className="p-10 text-center text-zinc-600 text-sm">{search ? 'No matching short-form posts found' : 'No short-form posts on other platforms to link'}</div>
             : otherPlatformPosts.map(target => {
                 const isLinked = existingLinks.includes(target.id)
                 const isProcessing = linking === target.id || unlinking === target.id
@@ -497,6 +535,7 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
   const [expandedCaption, setExpandedCaption] = useState<string | null>(null)
   const [showAllPosts, setShowAllPosts] = useState(false)
   const [platformFilter, setPlatformFilter] = useState<string>('all')
+  const [categoryFilter, setCategoryFilter] = useState<ContentCategory | 'all'>('all')
   const [sortBy, setSortBy] = useState<'date' | 'likes' | 'views' | 'reach' | 'engagement'>('engagement')
   const [linkingPost, setLinkingPost] = useState<PostData | null>(null)
 
@@ -534,7 +573,8 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
   }, [posts, postById])
 
   const filteredPosts = useMemo(() => {
-    const result = platformFilter === 'all' ? posts : posts.filter(p => p.platform === platformFilter)
+    let result = platformFilter === 'all' ? posts : posts.filter(p => p.platform === platformFilter)
+    if (categoryFilter !== 'all') result = result.filter(p => getContentCategory(p) === categoryFilter)
     return [...result].sort((a, b) => {
       if (sortBy === 'date')       return new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
       if (sortBy === 'likes')      return b.likes - a.likes
@@ -543,7 +583,15 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
       if (sortBy === 'engagement') return eng(b) - eng(a)
       return 0
     })
-  }, [posts, platformFilter, sortBy])
+  }, [posts, platformFilter, categoryFilter, sortBy])
+
+  // Count by category for badge counts
+  const categoryCounts = useMemo(() => {
+    const base = platformFilter === 'all' ? posts : posts.filter(p => p.platform === platformFilter)
+    const counts: Record<ContentCategory | 'all', number> = { all: base.length, shortform: 0, carousel: 0, longform: 0, photo: 0 }
+    for (const p of base) counts[getContentCategory(p)]++
+    return counts
+  }, [posts, platformFilter])
 
   const PAGE_SIZE = 25
   const visiblePosts = showAllPosts ? filteredPosts : filteredPosts.slice(0, PAGE_SIZE)
@@ -737,6 +785,7 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
             <span className="text-zinc-600 text-xs">{filteredPosts.length} total</span>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Platform filter */}
             <div className="flex items-center gap-1 bg-zinc-900/60 border border-white/5 rounded-xl p-1">
               <button onClick={() => setPlatformFilter('all')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${platformFilter === 'all' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
@@ -748,6 +797,20 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
                   <button key={p} onClick={() => setPlatformFilter(p)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-colors ${platformFilter === p ? `bg-zinc-700 ${c.text}` : 'text-zinc-500 hover:text-zinc-300'}`}>
                     {p}
+                  </button>
+                )
+              })}
+            </div>
+            {/* Content type filter */}
+            <div className="flex items-center gap-1 bg-zinc-900/60 border border-white/5 rounded-xl p-1">
+              {(['all', 'shortform', 'carousel', 'longform', 'photo'] as const).map(cat => {
+                const label = cat === 'all' ? 'All types' : CATEGORY_LABELS[cat]
+                const count = categoryCounts[cat]
+                const active = categoryFilter === cat
+                return (
+                  <button key={cat} onClick={() => { setCategoryFilter(cat); setShowAllPosts(false) }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${active ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                    {label}{count > 0 && cat !== 'all' ? <span className="ml-1 opacity-50">{count}</span> : null}
                   </button>
                 )
               })}
