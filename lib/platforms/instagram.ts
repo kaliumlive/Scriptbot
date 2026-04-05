@@ -188,7 +188,7 @@ export async function getInstagramMetrics(brandId: string, platformPostId: strin
         const isVideo = mediaData.media_type === 'VIDEO' || mediaData.media_type === 'REELS'
 
         // Fetch insights
-        const metricsToFetch = ['reach', 'saved']
+        const metricsToFetch = ['reach', 'saved', 'shares']
         if (isVideo) {
             metricsToFetch.push('video_views')
             metricsToFetch.push('plays')
@@ -218,6 +218,7 @@ export async function getInstagramMetrics(brandId: string, platformPostId: strin
                 if (m.name === 'reach') metrics.reach = value
                 if (m.name === 'impressions') metrics.impressions = value
                 if (m.name === 'saved') metrics.saves = value
+                if (m.name === 'shares') metrics.shares = value
                 if (m.name === 'video_views' || m.name === 'plays') {
                     metrics.views = Math.max(metrics.views, value)
                 }

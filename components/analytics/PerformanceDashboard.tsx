@@ -841,8 +841,10 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
                             </a>
                           )}
                           <button onClick={() => setLinkingPost(post)}
-                            className={`inline-flex items-center gap-1 text-[10px] font-semibold transition-colors ${
-                              isLinked ? 'text-amber-400 hover:text-amber-300' : 'text-zinc-500 hover:text-indigo-400'
+                            className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${
+                              isLinked
+                                ? 'text-amber-400 bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20'
+                                : 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/20'
                             }`}>
                             <Link2 className="w-2.5 h-2.5" />
                             {isLinked ? 'Linked' : 'Link'}
@@ -858,6 +860,9 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
                           <span className="flex items-center gap-0.5"><Heart className="w-2.5 h-2.5 text-rose-500/50" />{fmt(post.likes)}</span>
                           <span className="flex items-center gap-0.5"><MessageCircle className="w-2.5 h-2.5 text-blue-500/50" />{fmt(post.comments)}</span>
                           <span className="flex items-center gap-0.5"><Bookmark className="w-2.5 h-2.5 text-amber-500/50" />{fmt(post.saves)}</span>
+                          {post.shares > 0 && (
+                            <span className="flex items-center gap-0.5"><ArrowUpRight className="w-2.5 h-2.5 text-green-500/50" />{fmt(post.shares)}</span>
+                          )}
                         </div>
                       </div>
 
