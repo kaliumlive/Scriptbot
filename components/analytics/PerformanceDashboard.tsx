@@ -3,8 +3,12 @@
 import {
   BarChart3, TrendingUp, Eye, Heart, Bookmark, ArrowUpRight, ArrowDownRight,
   Zap, PlayCircle, ExternalLink, Copy, ImageOff, MessageCircle, Film,
-  Trophy, ChevronDown, Link2, X, Search, Users, Video
+  Trophy, ChevronDown, Link2, X, Search, Users, Video, Activity
 } from 'lucide-react'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Cell, AreaChart, Area, Legend,
+} from 'recharts'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -61,13 +65,14 @@ interface PerformanceDashboardProps {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const PLATFORM_COLORS: Record<string, { bg: string; text: string; border: string; dot: string }> = {
-  youtube:   { bg: 'bg-red-500/10',   text: 'text-red-400',   border: 'border-red-500/20',   dot: 'bg-red-500' },
-  instagram: { bg: 'bg-pink-500/10',  text: 'text-pink-400',  border: 'border-pink-500/20',  dot: 'bg-gradient-to-br from-pink-500 to-purple-500' },
-  tiktok:    { bg: 'bg-cyan-500/10',  text: 'text-cyan-400',  border: 'border-cyan-500/20',  dot: 'bg-cyan-500' },
-  twitter:   { bg: 'bg-sky-500/10',   text: 'text-sky-400',   border: 'border-sky-500/20',   dot: 'bg-sky-500' },
-  linkedin:  { bg: 'bg-blue-500/10',  text: 'text-blue-400',  border: 'border-blue-500/20',  dot: 'bg-blue-500' },
+const PLATFORM_COLORS: Record<string, { bg: string; text: string; border: string; dot: string; hex: string }> = {
+  youtube:   { bg: 'bg-red-500/10',   text: 'text-red-400',   border: 'border-red-500/20',   dot: 'bg-red-500',    hex: '#f87171' },
+  instagram: { bg: 'bg-pink-500/10',  text: 'text-pink-400',  border: 'border-pink-500/20',  dot: 'bg-pink-500',   hex: '#f472b6' },
+  tiktok:    { bg: 'bg-cyan-500/10',  text: 'text-cyan-400',  border: 'border-cyan-500/20',  dot: 'bg-cyan-500',   hex: '#22d3ee' },
+  twitter:   { bg: 'bg-sky-500/10',   text: 'text-sky-400',   border: 'border-sky-500/20',   dot: 'bg-sky-500',    hex: '#38bdf8' },
+  linkedin:  { bg: 'bg-blue-500/10',  text: 'text-blue-400',  border: 'border-blue-500/20',  dot: 'bg-blue-500',   hex: '#60a5fa' },
 }
+const DEFAULT_COLOR = { bg: 'bg-zinc-800', text: 'text-zinc-400', border: 'border-zinc-700', dot: 'bg-zinc-500', hex: '#71717a' }
 
 const MEDIA_TYPE_ICONS: Record<string, React.ElementType> = {
   VIDEO: Film, REELS: PlayCircle, IMAGE: ImageOff, CAROUSEL_ALBUM: Copy, video: Film,
@@ -83,12 +88,8 @@ function fmt(n: number): string {
   if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`
   return n.toString()
 }
-
 function eng(p: PostData) { return p.likes + p.comments + p.saves }
-
-function pc(platform: string) {
-  return PLATFORM_COLORS[platform] ?? { bg: 'bg-zinc-800', text: 'text-zinc-400', border: 'border-zinc-700', dot: 'bg-zinc-500' }
-}
+function pc(platform: string) { return PLATFORM_COLORS[platform] ?? DEFAULT_COLOR }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -106,7 +107,6 @@ function Thumb({ post, size = 'md' }: { post: PostData; size?: 'sm' | 'md' }) {
   const [err, setErr] = useState(false)
   const isVideo = post.media_type === 'VIDEO' || post.media_type === 'REELS' || post.media_type === 'video'
   const dim = size === 'sm' ? 'w-12 h-8' : 'w-16 h-10'
-
   if (post.thumbnail_url && !err) {
     return (
       <div className={`relative ${dim} rounded-lg overflow-hidden shrink-0 bg-zinc-800 border border-white/5`}>
@@ -122,10 +122,149 @@ function Thumb({ post, size = 'md' }: { post: PostData; size?: 'sm' | 'md' }) {
       </div>
     )
   }
-
   return (
     <div className={`${dim} rounded-lg shrink-0 bg-zinc-800/80 border border-white/5 flex items-center justify-center`}>
       {isVideo ? <Film className="w-3.5 h-3.5 text-zinc-600" /> : <ImageOff className="w-3.5 h-3.5 text-zinc-600" />}
+    </div>
+  )
+}
+
+// ── Custom recharts tooltip ───────────────────────────────────────────────────
+
+function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-zinc-900 border border-white/10 rounded-xl p-3 shadow-2xl text-xs">
+      {label && <p className="text-zinc-400 font-bold mb-1.5">{label}</p>}
+      {payload.map((p) => (
+        <div key={p.name} className="flex items-center justify-between gap-4">
+          <span style={{ color: p.color }} className="font-semibold capitalize">{p.name}</span>
+          <span className="text-white font-bold tabular-nums">{fmt(p.value)}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Charts Section ────────────────────────────────────────────────────────────
+
+function ChartsSection({ posts, platforms, platformStats }: {
+  posts: PostData[]
+  platforms: string[]
+  platformStats: Record<string, { posts: number; engagement: number; views: number; reach: number; topPost: PostData | null }>
+}) {
+  // 1. Engagement over time (monthly buckets, per platform)
+  const timelineData = useMemo(() => {
+    const map = new Map<string, Record<string, number | string>>()
+    for (const post of posts) {
+      const d = new Date(post.published_at)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+      if (!map.has(key)) map.set(key, { month: label })
+      const entry = map.get(key)!
+      entry[post.platform] = ((entry[post.platform] as number) || 0) + eng(post)
+    }
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v)
+  }, [posts])
+
+  // 2. Platform comparison: engagement + views side by side
+  const platformChartData = useMemo(() =>
+    platforms.map(p => ({
+      platform: p.charAt(0).toUpperCase() + p.slice(1),
+      Engagement: platformStats[p]?.engagement || 0,
+      Views: platformStats[p]?.views || 0,
+    })), [platforms, platformStats])
+
+  // 3. Top 10 posts by engagement
+  const topPostsData = useMemo(() =>
+    [...posts].sort((a, b) => eng(b) - eng(a)).slice(0, 10).map(post => ({
+      name: (post.title || post.platform_post_id.slice(0, 20)).slice(0, 32),
+      engagement: eng(post),
+      platform: post.platform,
+    })), [posts])
+
+  const hasTimeline = timelineData.length > 1
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Activity className="w-4 h-4 text-zinc-500" />
+        <h2 className="text-white font-bold">Performance Charts</h2>
+      </div>
+
+      <div className={`grid gap-4 ${platforms.length > 1 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
+
+        {/* Platform comparison */}
+        <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-5">
+          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-4">Engagement vs Views by Platform</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={platformChartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+              <XAxis dataKey="platform" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#71717a', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={fmt} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Legend wrapperStyle={{ fontSize: 11, color: '#71717a', paddingTop: 8 }} />
+              <Bar dataKey="Engagement" radius={[4, 4, 0, 0]}>
+                {platformChartData.map((entry, i) => (
+                  <Cell key={i} fill={pc(entry.platform.toLowerCase()).hex} fillOpacity={0.85} />
+                ))}
+              </Bar>
+              <Bar dataKey="Views" radius={[4, 4, 0, 0]}>
+                {platformChartData.map((entry, i) => (
+                  <Cell key={i} fill={pc(entry.platform.toLowerCase()).hex} fillOpacity={0.35} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Top 10 posts */}
+        <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-5">
+          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-4">Top 10 Posts by Engagement</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={topPostsData} layout="vertical" margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+              <XAxis type="number" tick={{ fill: '#71717a', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={fmt} />
+              <YAxis type="category" dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 9 }} width={120} axisLine={false} tickLine={false} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Bar dataKey="engagement" radius={[0, 4, 4, 0]}>
+                {topPostsData.map((entry, i) => (
+                  <Cell key={i} fill={pc(entry.platform).hex} fillOpacity={0.8} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Engagement over time */}
+      {hasTimeline && (
+        <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-5">
+          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-4">Engagement Over Time</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={timelineData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+              <defs>
+                {platforms.map(p => (
+                  <linearGradient key={p} id={`grad-${p}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={pc(p).hex} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={pc(p).hex} stopOpacity={0} />
+                  </linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+              <XAxis dataKey="month" tick={{ fill: '#71717a', fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#71717a', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={fmt} />
+              <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)' }} />
+              <Legend wrapperStyle={{ fontSize: 11, color: '#71717a', paddingTop: 8 }} />
+              {platforms.map(p => (
+                <Area key={p} type="monotone" dataKey={p} name={p.charAt(0).toUpperCase() + p.slice(1)}
+                  stroke={pc(p).hex} strokeWidth={2}
+                  fill={`url(#grad-${p})`} dot={false} activeDot={{ r: 4, fill: pc(p).hex }} />
+              ))}
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   )
 }
@@ -135,16 +274,14 @@ function Thumb({ post, size = 'md' }: { post: PostData; size?: 'sm' | 'md' }) {
 function ChannelCard({ ch }: { ch: ChannelStats }) {
   const c = pc(ch.platform)
   const followerLabel = ch.platform === 'youtube' ? 'subscribers' : 'followers'
-
   return (
     <div className={`flex items-center gap-4 rounded-2xl border ${c.border} ${c.bg} p-4`}>
       <div className={`w-14 h-14 rounded-full shrink-0 border-2 ${c.border} overflow-hidden bg-zinc-800 flex items-center justify-center`}>
-        {ch.profilePictureUrl ? (
+        {ch.profilePictureUrl
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={ch.profilePictureUrl} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <span className={`text-xl font-black ${c.text}`}>{ch.platform[0].toUpperCase()}</span>
-        )}
+          ? <img src={ch.profilePictureUrl} alt="" className="w-full h-full object-cover" />
+          : <span className={`text-xl font-black ${c.text}`}>{ch.platform[0].toUpperCase()}</span>
+        }
       </div>
       <div className="flex-1 min-w-0">
         <div className="mb-0.5"><PlatformBadge platform={ch.platform} /></div>
@@ -204,8 +341,7 @@ function LinkModal({ post, allPosts, existingLinks, onClose, onLinked }: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ postIdA: post.id, postIdB: targetId }),
       })
-      onLinked()
-      onClose()
+      onLinked(); onClose()
     } finally { setLinking(null) }
   }
 
@@ -217,8 +353,7 @@ function LinkModal({ post, allPosts, existingLinks, onClose, onLinked }: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ postIdA: post.id, postIdB: targetId }),
       })
-      onLinked()
-      onClose()
+      onLinked(); onClose()
     } finally { setUnlinking(null) }
   }
 
@@ -236,67 +371,53 @@ function LinkModal({ post, allPosts, existingLinks, onClose, onLinked }: {
               <Link2 className="w-4 h-4 text-indigo-400" />
               <h3 className="text-white font-bold">Link to another platform</h3>
             </div>
-            <p className="text-zinc-500 text-xs leading-relaxed">
-              Connect <span className="text-zinc-300 font-medium">{post.title || post.platform_post_id.slice(0, 24)}</span> to the same content on another platform.
+            <p className="text-zinc-500 text-xs">
+              Connect <span className="text-zinc-300 font-medium">{(post.title || post.platform_post_id).slice(0, 40)}</span> to the same content on another platform.
             </p>
           </div>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors shrink-0 mt-0.5">
-            <X className="w-4 h-4" />
-          </button>
+          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 shrink-0 mt-0.5"><X className="w-4 h-4" /></button>
         </div>
-
         <div className="px-4 py-3 border-b border-white/5">
           <div className="flex items-center gap-2 bg-zinc-900 border border-white/5 rounded-xl px-3 py-2">
             <Search className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-            <input
-              type="text" placeholder="Search by title..." value={search} onChange={e => setSearch(e.target.value)}
-              className="bg-transparent text-sm text-white placeholder-zinc-600 outline-none flex-1"
-              autoFocus
-            />
+            <input type="text" placeholder="Search by title..." value={search} onChange={e => setSearch(e.target.value)}
+              className="bg-transparent text-sm text-white placeholder-zinc-600 outline-none flex-1" autoFocus />
           </div>
         </div>
-
         <div className="overflow-y-auto flex-1 divide-y divide-white/[0.04]">
-          {otherPlatformPosts.length === 0 ? (
-            <div className="p-10 text-center text-zinc-600 text-sm">
-              {search ? 'No matching posts found' : 'No posts on other platforms to link'}
-            </div>
-          ) : otherPlatformPosts.map(target => {
-            const isLinked = existingLinks.includes(target.id)
-            const isProcessing = linking === target.id || unlinking === target.id
-            return (
-              <div key={target.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.025] transition-colors">
-                <Thumb post={target} size="sm" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <PlatformBadge platform={target.platform} />
-                    <span className="text-zinc-600 text-[10px]">
-                      {new Date(target.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
-                    </span>
+          {otherPlatformPosts.length === 0
+            ? <div className="p-10 text-center text-zinc-600 text-sm">{search ? 'No matching posts found' : 'No posts on other platforms to link'}</div>
+            : otherPlatformPosts.map(target => {
+                const isLinked = existingLinks.includes(target.id)
+                const isProcessing = linking === target.id || unlinking === target.id
+                return (
+                  <div key={target.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.025] transition-colors">
+                    <Thumb post={target} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <PlatformBadge platform={target.platform} />
+                        <span className="text-zinc-600 text-[10px]">
+                          {new Date(target.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-zinc-200 text-xs font-semibold truncate">{target.title || target.platform_post_id.slice(0, 32)}</p>
+                      <p className="text-zinc-600 text-[10px] tabular-nums">
+                        {fmt(eng(target))} engagement{target.views > 0 ? ` · ${fmt(target.views)} views` : ''}
+                      </p>
+                    </div>
+                    <button onClick={() => isLinked ? handleUnlink(target.id) : handleLink(target.id)} disabled={isProcessing}
+                      className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-40 ${
+                        isLinked
+                          ? 'border-rose-500/30 text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'
+                          : 'border-indigo-500/30 text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20'
+                      }`}>
+                      {isProcessing ? '…' : isLinked ? 'Unlink' : 'Link'}
+                    </button>
                   </div>
-                  <p className="text-zinc-200 text-xs font-semibold truncate">
-                    {target.title || target.platform_post_id.slice(0, 32)}
-                  </p>
-                  <p className="text-zinc-600 text-[10px] tabular-nums">
-                    {fmt(eng(target))} engagement{target.views > 0 ? ` · ${fmt(target.views)} views` : ''}
-                  </p>
-                </div>
-                <button
-                  onClick={() => isLinked ? handleUnlink(target.id) : handleLink(target.id)}
-                  disabled={isProcessing}
-                  className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-40 ${
-                    isLinked
-                      ? 'border-rose-500/30 text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'
-                      : 'border-indigo-500/30 text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20'
-                  }`}
-                >
-                  {isProcessing ? '…' : isLinked ? 'Unlink' : 'Link'}
-                </button>
-              </div>
-            )
-          })}
+                )
+              })
+          }
         </div>
-
         <div className="p-3 border-t border-white/5">
           <button onClick={onClose} className="w-full text-zinc-500 hover:text-zinc-300 text-xs font-medium transition-colors py-1">Close</button>
         </div>
@@ -311,7 +432,6 @@ function CrossPostRow({ group }: { group: PostData[] }) {
   const title = group[0].title || group[0].platform_post_id.slice(0, 30)
   const thumb = group.find(p => p.thumbnail_url)
   const maxEng = Math.max(...group.map(eng))
-
   return (
     <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4 space-y-3">
       <div className="flex items-center gap-3">
@@ -329,13 +449,11 @@ function CrossPostRow({ group }: { group: PostData[] }) {
           <p className="text-zinc-100 text-sm font-semibold line-clamp-1">{title}</p>
         </div>
       </div>
-
       <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${group.length}, 1fr)` }}>
         {group.map(post => {
           const c = pc(post.platform)
           const postEng = eng(post)
           const isWinner = postEng === maxEng && maxEng > 0
-
           return (
             <div key={post.id} className={`rounded-xl border p-3 relative ${isWinner ? `${c.border} ${c.bg}` : 'border-white/5 bg-zinc-900/40'}`}>
               {isWinner && (
@@ -429,12 +547,13 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
 
   const PAGE_SIZE = 25
   const visiblePosts = showAllPosts ? filteredPosts : filteredPosts.slice(0, PAGE_SIZE)
+  const allViewsZero = posts.length > 0 && posts.every(p => p.views === 0)
   const handleLinked = useCallback(() => { router.refresh() }, [router])
 
   return (
     <div className="space-y-8">
 
-      {/* ── Channel Overview ───────────────────────────────────────────── */}
+      {/* ── Channels ───────────────────────────────────────────────────── */}
       {channelStats.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -454,10 +573,10 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
       {/* ── Stats Cards ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Views',  value: fmt(stats.totalViews || 0),                           icon: PlayCircle, trend: stats.engagementTrend },
-          { label: 'Total Reach',  value: stats.totalReach > 0 ? fmt(stats.totalReach) : '—',  icon: Eye,        trend: stats.reachTrend },
-          { label: 'Engagement',   value: fmt(stats.totalEngagement),                           icon: Heart,      trend: stats.engagementTrend },
-          { label: 'Total Posts',  value: stats.totalPosts.toString(),                          icon: BarChart3,  trend: stats.postTrend },
+          { label: 'Total Views',  value: stats.totalViews > 0 ? fmt(stats.totalViews) : '—',      icon: PlayCircle, trend: stats.engagementTrend },
+          { label: 'Total Reach',  value: stats.totalReach > 0 ? fmt(stats.totalReach) : '—',      icon: Eye,        trend: stats.reachTrend },
+          { label: 'Engagement',   value: fmt(stats.totalEngagement),                              icon: Heart,      trend: stats.engagementTrend },
+          { label: 'Total Posts',  value: stats.totalPosts.toString(),                             icon: BarChart3,  trend: stats.postTrend },
         ].map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
             className="bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-3xl p-6 relative overflow-hidden group">
@@ -478,13 +597,24 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
         ))}
       </div>
 
+      {/* ── Views notice ───────────────────────────────────────────────── */}
+      {allViewsZero && (
+        <div className="flex items-center gap-3 bg-blue-500/5 border border-blue-500/15 rounded-2xl px-5 py-3">
+          <Eye className="w-4 h-4 text-blue-400 shrink-0" />
+          <p className="text-blue-300/80 text-xs leading-relaxed">
+            Views showing — because the analytics snapshot hasn&apos;t run since your last platform reconnect.
+            Click <span className="text-blue-200 font-semibold">Sync Platforms</span> to refresh view counts.
+          </p>
+        </div>
+      )}
+
       {/* ── AI Insight ─────────────────────────────────────────────────── */}
       {aiInsight && (
         <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
           className="bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/20 rounded-3xl p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 -m-4 w-24 h-24 bg-indigo-500/20 blur-3xl rounded-full" />
           <div className="flex items-start gap-4 mb-4">
-            <div className="w-10 h-10 bg-indigo-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
+            <div className="w-10 h-10 bg-indigo-500 rounded-2xl flex items-center justify-center shrink-0">
               <Zap className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -505,8 +635,7 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
           </div>
           <div className={`grid gap-4 ${platforms.length === 1 ? 'grid-cols-1 max-w-sm' : 'grid-cols-1 md:grid-cols-2'}`}>
             {platforms.map(platform => {
-              const s = platformStats[platform]
-              if (!s) return null
+              const s = platformStats[platform]; if (!s) return null
               const c = pc(platform)
               return (
                 <motion.div key={platform} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
@@ -519,37 +648,29 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
                     <span className="text-zinc-500 text-xs">{s.posts} posts tracked</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-0.5">Total Engagement</div>
-                      <div className="text-xl font-bold text-white tabular-nums">{fmt(s.engagement)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-0.5">Avg / post</div>
-                      <div className="text-xl font-bold text-white tabular-nums">{fmt(Math.round(s.engagement / s.posts))}</div>
-                    </div>
+                    <div><div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-0.5">Total Engagement</div>
+                      <div className="text-xl font-bold text-white tabular-nums">{fmt(s.engagement)}</div></div>
+                    <div><div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-0.5">Avg / post</div>
+                      <div className="text-xl font-bold text-white tabular-nums">{fmt(Math.round(s.engagement / s.posts))}</div></div>
                     {(platform === 'youtube' || s.views > 0) && (
-                      <div>
-                        <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-0.5">Views</div>
-                        <div className="text-xl font-bold text-white tabular-nums">{fmt(s.views)}</div>
-                      </div>
+                      <div><div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-0.5">Views</div>
+                        <div className="text-xl font-bold text-white tabular-nums">{fmt(s.views)}</div></div>
                     )}
                     {(platform === 'instagram' || s.reach > 0) && (
-                      <div>
-                        <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-0.5">Reach</div>
+                      <div><div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-0.5">Reach</div>
                         <div className="text-xl font-bold text-white tabular-nums">
                           {s.reach > 0 ? fmt(s.reach) : <span className="text-zinc-600 text-sm">—</span>}
-                        </div>
-                      </div>
+                        </div></div>
                     )}
                   </div>
                   {s.topPost && (
-                    <div className={`rounded-xl border ${c.border} bg-black/20 p-3 space-y-1`}>
+                    <div className={`rounded-xl border ${c.border} bg-black/20 p-3`}>
                       <div className="flex items-center gap-1 mb-1">
                         <Trophy className={`w-3 h-3 ${c.text}`} />
                         <span className={`text-[9px] font-black uppercase tracking-widest ${c.text}`}>Top Post</span>
                       </div>
                       <p className="text-white text-xs font-semibold line-clamp-2">{s.topPost.title || s.topPost.platform_post_id.slice(0, 24)}</p>
-                      <div className={`text-[10px] ${c.text} font-bold`}>
+                      <div className={`text-[10px] ${c.text} font-bold mt-1`}>
                         {fmt(eng(s.topPost))} engagement{s.topPost.views > 0 ? ` · ${fmt(s.topPost.views)} views` : ''}
                       </div>
                     </div>
@@ -567,12 +688,11 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
                 {platforms.map(platform => {
                   const s = platformStats[platform]; if (!s) return null
                   const c = pc(platform)
-                  const pct = maxE > 0 ? (s.engagement / maxE) * 100 : 0
                   return (
                     <div key={platform} className="flex items-center gap-3">
                       <span className={`text-xs font-bold capitalize w-20 shrink-0 ${c.text}`}>{platform}</span>
                       <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
-                        <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: 'easeOut' }}
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${(s.engagement / maxE) * 100}%` }} transition={{ duration: 0.8, ease: 'easeOut' }}
                           className={`h-full rounded-full ${c.dot}`} />
                       </div>
                       <span className="text-zinc-300 text-xs font-bold tabular-nums w-14 text-right">{fmt(s.engagement)}</span>
@@ -583,6 +703,11 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
             ) : null
           })()}
         </div>
+      )}
+
+      {/* ── Performance Charts ──────────────────────────────────────────── */}
+      {posts.length > 0 && (
+        <ChartsSection posts={posts} platforms={platforms} platformStats={platformStats} />
       )}
 
       {/* ── Cross-Post Performance ─────────────────────────────────────── */}
@@ -603,7 +728,7 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
         </div>
       )}
 
-      {/* ── Post Feed ──────────────────────────────────────────────────── */}
+      {/* ── All Posts ──────────────────────────────────────────────────── */}
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -645,16 +770,15 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
           {filteredPosts.length === 0 ? (
             <div className="p-16 text-center">
               <BarChart3 className="w-10 h-10 text-zinc-700 mx-auto mb-4" />
-              <p className="text-zinc-500 text-sm">No posts yet.</p>
-              <p className="text-zinc-600 text-xs mt-1">Click <span className="text-zinc-400 font-semibold">Sync Platforms</span> to import your history.</p>
+              <p className="text-zinc-500 text-sm">No posts yet. Click <span className="text-zinc-400 font-semibold">Sync Platforms</span> to import.</p>
             </div>
           ) : (
             <>
               <div className="px-6 py-3 border-b border-white/5 grid text-[10px] font-black uppercase tracking-widest text-zinc-600"
-                style={{ gridTemplateColumns: '4rem 1fr 8rem 7rem 7rem 5rem 2rem' }}>
+                style={{ gridTemplateColumns: '4rem 1fr 8rem 7rem 7rem 5rem' }}>
                 <div /><div>Content</div><div>Platform</div>
                 <div className="text-right">Engagement</div><div className="text-right">Views / Reach</div>
-                <div className="text-right">Published</div><div />
+                <div className="text-right">Published</div>
               </div>
 
               <div className="divide-y divide-white/[0.03]">
@@ -673,10 +797,11 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
                     <motion.div key={post.id}
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i * 0.015, 0.4) }}
                       className="group px-6 py-3.5 hover:bg-white/[0.015] transition-colors grid items-center gap-3"
-                      style={{ gridTemplateColumns: '4rem 1fr 8rem 7rem 7rem 5rem 2rem' }}>
+                      style={{ gridTemplateColumns: '4rem 1fr 8rem 7rem 7rem 5rem' }}>
 
                       <Thumb post={post} />
 
+                      {/* Content + inline link button */}
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
                           {MediaIcon && mediaLabel && (
@@ -704,6 +829,7 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
                             )}
                           </p>
                         )}
+                        {/* Post ID + View + Link button — all inline */}
                         <div className="flex items-center gap-3 mt-1">
                           <span className="text-zinc-700 text-[10px] font-mono">
                             {post.platform_post_id.slice(0, 14)}{post.platform_post_id.length > 14 ? '…' : ''}
@@ -714,6 +840,13 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
                               <ExternalLink className="w-2.5 h-2.5" />View
                             </a>
                           )}
+                          <button onClick={() => setLinkingPost(post)}
+                            className={`inline-flex items-center gap-1 text-[10px] font-semibold transition-colors ${
+                              isLinked ? 'text-amber-400 hover:text-amber-300' : 'text-zinc-500 hover:text-indigo-400'
+                            }`}>
+                            <Link2 className="w-2.5 h-2.5" />
+                            {isLinked ? 'Linked' : 'Link'}
+                          </button>
                         </div>
                       </div>
 
@@ -729,12 +862,11 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
                       </div>
 
                       <div className="text-right">
-                        {heroValue !== null ? (
-                          <>
-                            <div className="text-white font-bold text-sm tabular-nums">{fmt(heroValue)}</div>
-                            <div className="text-zinc-500 text-[10px] uppercase font-bold">{heroLabel}</div>
-                          </>
-                        ) : <span className="text-zinc-700 text-xs">—</span>}
+                        {heroValue !== null
+                          ? <><div className="text-white font-bold text-sm tabular-nums">{fmt(heroValue)}</div>
+                              <div className="text-zinc-500 text-[10px] uppercase font-bold">{heroLabel}</div></>
+                          : <span className="text-zinc-700 text-xs">—</span>
+                        }
                       </div>
 
                       <div className="text-right">
@@ -743,16 +875,6 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-center">
-                        <button onClick={() => setLinkingPost(post)} title="Link to another platform"
-                          className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${
-                            isLinked
-                              ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20'
-                              : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 border border-transparent'
-                          }`}>
-                          <Link2 className="w-3 h-3" />
-                        </button>
-                      </div>
                     </motion.div>
                   )
                 })}
@@ -784,7 +906,6 @@ export default function PerformanceDashboard({ stats, posts, channelStats, aiIns
           />
         )}
       </AnimatePresence>
-
     </div>
   )
 }
