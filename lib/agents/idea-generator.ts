@@ -1,9 +1,15 @@
 /**
  * Idea Generator Agent
  *
- * Reads the latest trend reports for each active brand, combines them with
- * the brand's voice profile, and uses Groq to generate 5-10 content ideas.
- * Auto-approves ideas that fit the brand's voice well.
+ * Generates FAN-ATTRACTING content ideas — not tutorial content.
+ *
+ * THE CORE DISTINCTION:
+ *   Fan content  → makes someone want to follow THIS person (opinions, stories, worldview)
+ *   Tutorial content → teaches skills (attracts students who follow the TOPIC, not the person)
+ *
+ * Every idea must be rooted in something the creator actually experienced, believes, or
+ * has a specific, earned perspective on. If a random stranger could make the same video,
+ * it's the wrong idea.
  *
  * GitHub Actions trigger: daily 6AM UTC
  */
@@ -21,74 +27,100 @@ interface GeneratedIdea {
   story_structure_id: string
   target_platforms: string[]
   content_type: string
-  auto_approve: boolean
+  idea_type: 'fan_content' | 'tutorial_content' // used to filter out tutorials
 }
 
-function buildIdeaPrompt(brand: {
-  name: string
-  platforms: string[]
-}, voiceProfile: BrandVoiceProfile | null, existingTitles: string[]): string {
-  // Build rich experience context from voice profile
-  const experienceLines: string[] = []
-  if (voiceProfile?.worldview) experienceLines.push(`WORLDVIEW: ${voiceProfile.worldview}`)
-  if (voiceProfile?.click_moment) experienceLines.push(`DEFINING MOMENT: ${voiceProfile.click_moment}`)
-  if (voiceProfile?.unlearned) experienceLines.push(`UNLEARNED: ${voiceProfile.unlearned}`)
-  if (voiceProfile?.building_toward) experienceLines.push(`BUILDING TOWARD: ${voiceProfile.building_toward}`)
-  if (voiceProfile?.known_for) experienceLines.push(`KNOWN FOR: ${voiceProfile.known_for}`)
-  if (voiceProfile?.unpopular_belief) experienceLines.push(`UNPOPULAR BELIEF: ${voiceProfile.unpopular_belief}`)
-  if (voiceProfile?.hard_period) experienceLines.push(`HARD PERIOD: ${voiceProfile.hard_period}`)
-  if (voiceProfile?.sacrifices) experienceLines.push(`HOW THEY OPERATE: ${voiceProfile.sacrifices}`)
-  if (voiceProfile?.ideal_viewer) experienceLines.push(`IDEAL VIEWER: ${voiceProfile.ideal_viewer}`)
-  if (voiceProfile?.desired_feeling) experienceLines.push(`DESIRED FEELING: ${voiceProfile.desired_feeling}`)
+function buildIdeaPrompt(
+  brand: { name: string; platforms: string[] },
+  voiceProfile: BrandVoiceProfile | null,
+  recentConversations: string[],
+  existingTitles: string[]
+): string {
+  // Build creator identity context
+  const identityLines: string[] = []
+  if (voiceProfile?.worldview) identityLines.push(`WORLDVIEW: ${voiceProfile.worldview}`)
+  if (voiceProfile?.click_moment) identityLines.push(`DEFINING MOMENT: ${voiceProfile.click_moment}`)
+  if (voiceProfile?.unlearned) identityLines.push(`SOMETHING THEY UNLEARNED: ${voiceProfile.unlearned}`)
+  if (voiceProfile?.unpopular_belief) identityLines.push(`UNPOPULAR BELIEF: ${voiceProfile.unpopular_belief}`)
+  if (voiceProfile?.hard_period) identityLines.push(`HARD PERIOD: ${voiceProfile.hard_period}`)
+  if (voiceProfile?.known_for) identityLines.push(`KNOWN FOR: ${voiceProfile.known_for}`)
+  if (voiceProfile?.building_toward) identityLines.push(`BUILDING TOWARD: ${voiceProfile.building_toward}`)
+  if (voiceProfile?.ideal_viewer) identityLines.push(`IDEAL FAN: ${voiceProfile.ideal_viewer}`)
+  if (voiceProfile?.desired_feeling) identityLines.push(`DESIRED FEELING: ${voiceProfile.desired_feeling}`)
+  if (voiceProfile?.sacrifices) identityLines.push(`HOW THEY OPERATE: ${voiceProfile.sacrifices}`)
 
   const avoidTitles = existingTitles.length
-    ? `\nALREADY COVERED (do not repeat these topics):\n${existingTitles.slice(0, 15).map(t => `- ${t}`).join('\n')}`
+    ? `\nALREADY COVERED — do NOT repeat these:\n${existingTitles.slice(0, 20).map(t => `- ${t}`).join('\n')}`
     : ''
 
-  return `You are generating content ideas for a creator. Ideas MUST come from their lived experience and personal perspective — not generic advice or tutorials.
+  const conversationsContext = recentConversations.length
+    ? `\nCURRENT CONVERSATIONS in their space (use as inspiration for the creator's personal angle — do NOT just make content about the trend itself):\n${recentConversations.map(c => `- ${c}`).join('\n')}`
+    : ''
+
+  return `You are generating content ideas for a creator who wants to build FANS, not a student base.
 
 CREATOR: ${brand.name}
 PLATFORMS: ${brand.platforms.join(', ')}
 
-CREATOR CONTEXT:
-${experienceLines.join('\n')}
-
-STYLE:
-${voiceProfile?.style_guide ? voiceProfile.style_guide.slice(0, 600) : voiceProfile?.natural_tone ?? ''}
+CREATOR IDENTITY:
+${identityLines.length >= 2 ? identityLines.join('\n') : `Niche creator building a personal brand. Generate ideas rooted in personal experience, strong opinions, and honest perspective — not educational content.`}
+${conversationsContext}
 ${avoidTitles}
 
-Generate exactly 7 content ideas. Each must be rooted in something the creator actually experienced, noticed, or has a real opinion on. No generic tips, no tutorials, no listicles about "X ways to improve your mix."
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THE MOST IMPORTANT RULE — READ CAREFULLY:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Good examples of the right direction:
-- "Why I stopped listening to my mentors" (personal turning point)
-- "The mix I almost deleted" (real story, specific moment)
-- "What feedback from [artist] actually changed" (experience-based insight)
-- "Why I apply Indian scales when Western ones 'work fine'" (honest perspective)
+FAN CONTENT (generate ONLY these):
+→ Makes someone want to follow THIS specific person
+→ Based on: personal stories, strong opinions, worldview, earned perspective, vulnerable moments
+→ Test: "Could a random person in this niche make the exact same video?" If YES, it's wrong.
+→ Examples:
+   - "Why I almost quit after [specific moment]" — personal story
+   - "My honest take on [contested thing in the space]" — opinion
+   - "The belief I held for 3 years that was completely wrong" — worldview shift
+   - "Why I rejected [common advice everyone follows]" — earned contrarian view
+   - "What [specific experience] taught me about [bigger truth]" — insight from story
 
-Bad examples (do NOT generate these):
-- "5 tips for better mixing"
-- "How to use a compressor"
-- "Best free VSTs in 2025"
-- "A day in the life of a music producer"
+TUTORIAL CONTENT (NEVER generate these — these attract students, not fans):
+→ "How to [skill]", "X tips for [result]", "Best [tools/plugins/gear]"
+→ "A day in the life" (format, not a conversation)
+→ Any advice a Wikipedia article could give
+→ Content where the creator's identity is irrelevant
+→ Examples of what NOT to generate:
+   ✗ "5 mixing tips for beginners"
+   ✗ "How to use reverb correctly"
+   ✗ "Best free VSTs in 2025"
+   ✗ "How I built my studio setup"
+   ✗ "What I use to make beats"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Generate exactly 8 content ideas. Spread across these TYPES:
+- 3× opinion/hot take ideas (creator's specific, polarizing beliefs)
+- 2× personal story ideas (specific moments from their life/journey)
+- 2× worldview/perspective ideas (how they see the world differently)
+- 1× cultural commentary idea (their take on something happening in their space)
 
 Return ONLY a JSON array, no markdown:
 [
   {
-    "title": "short punchy title",
-    "concept": "1-2 sentences — what real experience or observation drives this",
-    "hook": "first line that stops the scroll — specific, not generic",
-    "story_structure_id": "one of: lesson|breakthrough|hot_take|comparison|day_in_life|behind_scenes|hero_journey|myth_busting|reaction",
+    "title": "punchy, specific title — not generic",
+    "concept": "1-2 sentences — what real experience, belief, or observation drives this. Be specific.",
+    "hook": "the exact first line that stops the scroll — specific and tied to this creator's story, not a generic setup",
+    "story_structure_id": "one of: lesson|breakthrough|hot_take|comparison|behind_scenes|hero_journey|myth_busting|confession|reaction",
     "target_platforms": ["instagram", "tiktok"],
-    "content_type": "short_video",
-    "auto_approve": true
+    "content_type": "short_video | reel | carousel | thread | long_video",
+    "idea_type": "fan_content"
   }
 ]
 
 Rules:
-- Every idea must be something only THIS creator could make — tied to their specific story
-- content_type: short_video | carousel | thread | long_video | reel
-- auto_approve true only when it clearly fits their voice and experience
-- NEVER: ${voiceProfile?.never_do ?? 'generic tutorials, CTAs, motivational framing'}
+- Every idea must pass the test: "Only THIS creator can make this video — no one else"
+- Every hook must be specific and story-grounded, not a question or generic promise
+- idea_type must ALWAYS be "fan_content" — if you generate tutorial content, you've failed the task
+- NEVER generate: ${voiceProfile?.never_do ?? 'tutorials, how-to lists, gear reviews, generic motivational content'}
+- Natural tone: ${voiceProfile?.natural_tone ?? 'direct, confident, specific'}
 `
 }
 
@@ -99,7 +131,6 @@ export async function runIdeaGenerator(brandId?: string): Promise<{
 }> {
   const supabase = createAdminClient()
 
-  // Get brands to process
   const q = supabase.from('brands').select('id, name, platforms')
   const { data: brands, error: brandsError } = brandId ? await q.eq('id', brandId) : await q
 
@@ -128,6 +159,41 @@ export async function runIdeaGenerator(brandId?: string): Promise<{
 
       const existingTitles = (existingIdeas ?? []).map((i: { title: string }) => i.title)
 
+      // Get recent trend conversations to use as context (not as topics to copy)
+      // Use creator_angle and content_opportunity — the personal-angle fields from new trend scout
+      const { data: recentTrends } = await supabase
+        .from('trend_reports')
+        .select('trends')
+        .eq('brand_id', brand.id)
+        .order('report_date', { ascending: false })
+        .limit(3)
+
+      const recentConversations: string[] = []
+      for (const report of recentTrends ?? []) {
+        const trends = report.trends as Array<{
+          conversation?: string
+          creator_angle?: string
+          content_opportunity?: string
+          // legacy fields from old trend scout
+          topic?: string
+          angle?: string
+        }>
+        if (!Array.isArray(trends)) continue
+        for (const t of trends.slice(0, 2)) {
+          // New trend scout format
+          if (t.conversation) {
+            recentConversations.push(t.content_opportunity ?? t.creator_angle ?? t.conversation)
+          } else if (t.topic) {
+            // Legacy format — skip generic tutorial topics
+            const topic = t.topic.toLowerCase()
+            const isTutorial = ['how to', 'tips', 'guide', 'beginner', 'best plugins', 'tools', 'gear', 'setup', 'improve your'].some(s => topic.includes(s))
+            if (!isTutorial) {
+              recentConversations.push(t.angle ?? t.topic)
+            }
+          }
+        }
+      }
+
       const voiceSystemPrompt = voiceProfile
         ? buildVoiceSystemPrompt(voiceProfile as BrandVoiceProfile)
         : undefined
@@ -138,20 +204,32 @@ export async function runIdeaGenerator(brandId?: string): Promise<{
           platforms: (brand.platforms as string[]) ?? ['instagram', 'tiktok'],
         },
         voiceProfile as BrandVoiceProfile | null,
+        recentConversations,
         existingTitles
       )
 
       const raw = await generateWithGroq(prompt, voiceSystemPrompt)
-
-      // Parse ideas
       const ideas = parseLLMJson<GeneratedIdea[]>(raw)
+
       if (!Array.isArray(ideas) || ideas.length === 0) {
         console.error(`IdeaGenerator: Failed to parse ideas for brand ${brand.id}`, raw)
         continue
       }
 
-      // Insert ideas
-      const rows = ideas.map(idea => ({
+      // Hard filter: reject anything that slipped through as tutorial content
+      const fanIdeas = ideas.filter(idea => {
+        if (idea.idea_type === 'tutorial_content') return false
+        const title = idea.title.toLowerCase()
+        const isTutorial = ['how to ', 'tips for', 'best ', 'top ', 'guide to', 'tutorial', 'improve your', 'learn how'].some(s => title.startsWith(s) || title.includes(s))
+        return !isTutorial
+      })
+
+      if (fanIdeas.length === 0) {
+        console.warn(`IdeaGenerator: All ideas filtered as tutorials for brand ${brand.id}. Skipping batch.`)
+        continue
+      }
+
+      const rows = fanIdeas.map(idea => ({
         brand_id: brand.id,
         title: idea.title,
         concept: idea.concept,
@@ -159,7 +237,8 @@ export async function runIdeaGenerator(brandId?: string): Promise<{
         story_structure_id: idea.story_structure_id,
         target_platforms: idea.target_platforms,
         content_type: idea.content_type,
-        status: idea.auto_approve ? 'approved' : 'idea',
+        // Ideas always start as 'idea' — user approves manually or via Generate Script flow
+        status: 'idea',
         source: 'ai',
       }))
 
