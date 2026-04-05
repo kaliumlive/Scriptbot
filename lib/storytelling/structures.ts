@@ -149,6 +149,57 @@ export const STORY_STRUCTURES: StoryStructure[] = [
       { name: 'CTA (optional)', purpose: 'Optional', duration_pct: 5, prompts: [] },
     ],
   },
+  {
+    id: 'aida',
+    name: 'AIDA',
+    description: "Classic copywriting framework: Attention → Interest → Desire → Action. Perfect for promotional and persuasive content.",
+    best_for: ['promo', 'product', 'offer', 'persuasion', 'announcement'],
+    visual_theme: 'High-energy cuts, bold text overlays, aspirational B-roll.',
+    stages: [
+      { name: 'Attention', purpose: 'Stop the scroll — one bold, unexpected, or visual statement', duration_pct: 15, prompts: ['What\'s the most arresting thing you can say?', 'What will make them freeze mid-scroll?'], visual_guidance: 'Big text-on-screen or a visually striking action.' },
+      { name: 'Interest', purpose: 'Keep them watching — build curiosity or relevance', duration_pct: 30, prompts: ['Why should they care?', 'What context makes this interesting?', 'What\'s the problem or opportunity?'], visual_guidance: 'Talking head with expressive delivery, or rapid-cut montage.' },
+      { name: 'Desire', purpose: 'Create want — show the outcome, the transformation, the feeling', duration_pct: 35, prompts: ['What does their life look like with this?', 'What\'s the specific benefit they get?', 'Show don\'t tell — what does success look like?'], visual_guidance: 'Results B-roll, before/after, or aspirational imagery.' },
+      { name: 'Action', purpose: 'One clear ask — don\'t hedge', duration_pct: 20, prompts: ['What\'s the single thing you want them to do?', 'Make it feel easy and immediate.'], visual_guidance: 'Direct eye contact, confident tone, text CTA on screen.' },
+    ],
+  },
+  {
+    id: 'abt',
+    name: 'ABT (And-But-Therefore)',
+    description: "South Park's storytelling engine. And (setup) → But (conflict) → Therefore (resolution). Keeps narrative momentum tight.",
+    best_for: ['personal story', 'case study', 'problem-solution', 'explanation'],
+    visual_theme: 'Conversational, tight edits, momentum-driven pacing.',
+    stages: [
+      { name: 'And (Setup)', purpose: 'Establish the world — what was true, what you had, how things were', duration_pct: 25, prompts: ['What\'s the background?', 'What was the normal state of things?', 'What did you have or think?'], visual_guidance: 'Relaxed B-roll, setting the scene.' },
+      { name: 'But (Conflict)', purpose: 'The turn — what went wrong, what changed, what you discovered', duration_pct: 35, prompts: ['What disrupted the normal?', 'What didn\'t work?', 'What problem emerged?'], visual_guidance: 'Quick cut, tonal shift in music, direct-to-camera delivery.' },
+      { name: 'Therefore (Resolution)', purpose: 'The outcome — what you did, what changed, what others should do', duration_pct: 40, prompts: ['What did you do about it?', 'What\'s the result?', 'What should they take away?'], visual_guidance: 'Confident delivery, results shown, clear conclusion.' },
+    ],
+  },
+  {
+    id: 'pas',
+    name: 'PAS (Problem-Agitate-Solution)',
+    description: "Direct response formula. Name the pain → make it feel urgent → present the fix. High-converting for educational content.",
+    best_for: ['tutorial', 'tip', 'pain point', 'educational', 'fix'],
+    visual_theme: 'Clean, direct, high-information density.',
+    stages: [
+      { name: 'Problem', purpose: 'Name the exact pain point your audience is experiencing right now', duration_pct: 20, prompts: ['What specific problem do they have?', 'Say it in their words, not yours.'], visual_guidance: 'Text mograph of the problem statement, or direct address.' },
+      { name: 'Agitate', purpose: 'Make the problem feel real and urgent — consequences, frustration, cost', duration_pct: 30, prompts: ['What happens if they don\'t fix this?', 'How does this problem compound over time?', 'What are they missing out on?'], visual_guidance: 'Emotional delivery, relatable frustration shown.' },
+      { name: 'Solution', purpose: 'Present the fix clearly, specifically, and actionably', duration_pct: 45, prompts: ['What\'s the exact solution?', 'Walk through it step by step.', 'What makes your solution better than the alternatives?'], visual_guidance: 'Tutorial-style screenshare or demonstration, clear steps on screen.' },
+      { name: 'CTA (optional)', purpose: 'Optional follow-through ask', duration_pct: 5, prompts: ['What do you want them to do next?'] },
+    ],
+  },
+  {
+    id: 'bab',
+    name: 'Before-After-Bridge (BAB)',
+    description: "Show where they are (Before) → where they could be (After) → how to get there (Bridge). Pure transformation framing.",
+    best_for: ['transformation', 'tutorial', 'tip', 'result showcase', 'testimonial'],
+    visual_theme: 'Split-screen, contrast visuals, aspirational imagery.',
+    stages: [
+      { name: 'Before', purpose: 'Paint the current painful reality your audience is living', duration_pct: 25, prompts: ['What does their life look like right now?', 'What\'s the struggle, the frustration, the lack?'], visual_guidance: 'Relatable, unpolished "before" footage or description.' },
+      { name: 'After', purpose: 'Show the desired future state — vivid, specific, emotional', duration_pct: 30, prompts: ['What does success look like in detail?', 'How does it feel?', 'What\'s different about their day-to-day?'], visual_guidance: 'Aspirational B-roll, your own "after" results, bright and confident.' },
+      { name: 'Bridge', purpose: 'The exact path from Before to After — your method, step, or insight', duration_pct: 40, prompts: ['What\'s the specific mechanism that creates the transformation?', 'Walk them through it.'], visual_guidance: 'Tutorial/demonstration, clear and structured delivery.' },
+      { name: 'CTA (optional)', purpose: 'Optional', duration_pct: 5, prompts: [] },
+    ],
+  },
 ]
 
 export function getStructureById(id: string): StoryStructure | undefined {
