@@ -1,17 +1,11 @@
+# Deploy is handled automatically by Vercel's native Git integration.
+# Vercel watches the main branch and deploys on every push — no action needed here.
+# This file is kept as a placeholder so it's clear the workflow was intentionally removed.
 name: Deploy to Vercel
 on:
-  push:
-    branches: [main]
-
+  workflow_dispatch:  # manual only — auto-deploy is via Vercel Git integration
 jobs:
-  deploy:
+  info:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
+      - run: echo "Vercel deploys automatically on push to main via Git integration."
