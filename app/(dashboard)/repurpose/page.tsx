@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Layers, ArrowRight } from 'lucide-react'
 import VideoUploader from '@/components/repurpose/VideoUploader'
+import ScriptToCarousel from '@/components/repurpose/ScriptToCarousel'
 import CarouselPreview from '@/components/repurpose/CarouselPreview'
 import StoryboardPreview from '@/components/repurpose/StoryboardPreview'
 import Link from 'next/link'
@@ -72,8 +73,9 @@ export default async function RepurposePage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         {brandId ? <VideoUploader brandId={brandId} /> : null}
+        {brandId ? <ScriptToCarousel brandId={brandId} /> : null}
 
         <Link
           href="/settings/connections"
