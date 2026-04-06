@@ -10,7 +10,7 @@ export default async function CalendarPage() {
   const { data: posts } = brand
     ? await supabase
         .from('published_posts')
-        .select('id, platform, platform_post_id, platform_post_url, published_at')
+        .select('id, platform, platform_post_id, platform_post_url, published_at, title, thumbnail_url, caption')
         .eq('brand_id', brand.id)
         .order('published_at', { ascending: false })
         .limit(50)
@@ -47,11 +47,26 @@ export default async function CalendarPage() {
             platform_post_id: string
             platform_post_url?: string | null
             published_at: string
+            title?: string | null
+            thumbnail_url?: string | null
+            caption?: string | null
           }[]).map(post => (
             <div
               key={post.id}
-              className="bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 flex items-center gap-4 hover:border-white/[0.1] transition-colors"
+              className="bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 flex items-center gap-3 hover:border-white/[0.1] transition-colors"
             >
+              {/* Thumbnail */}
+              {post.thumbnail_url ? (
+                <img
+                  src={post.thumbnail_url}
+                  alt=""
+                  className="w-10 h-10 rounded-lg object-cover shrink-0 bg-zinc-800"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-lg bg-zinc-800 shrink-0" />
+              )}
+
+              {/* Platform badge */}
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
                 post.platform === 'instagram'
                   ? 'text-pink-400 bg-pink-500/10 border-pink-500/20'
@@ -62,8 +77,15 @@ export default async function CalendarPage() {
                 {post.platform.toUpperCase()}
               </span>
 
+              {/* Title / caption / fallback ID */}
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-zinc-600 font-mono truncate">{post.platform_post_id}</p>
+                {post.title ? (
+                  <p className="text-xs text-zinc-300 truncate font-medium">{post.title}</p>
+                ) : post.caption ? (
+                  <p className="text-xs text-zinc-400 truncate">{post.caption}</p>
+                ) : (
+                  <p className="text-xs text-zinc-600 font-mono truncate">{post.platform_post_id}</p>
+                )}
               </div>
 
               <span className="text-xs text-zinc-700 tabular-nums shrink-0">
