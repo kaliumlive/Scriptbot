@@ -15,6 +15,7 @@ export default function IdeaInput({ brandId, initialTopic = '', onComplete }: Id
   const [topic, setTopic] = useState(initialTopic)
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(0)
+  const [error, setError] = useState<string | null>(null)
 
   // Update topic if initialTopic changes (e.g. from brainstorming)
   useEffect(() => {
@@ -34,8 +35,9 @@ export default function IdeaInput({ brandId, initialTopic = '', onComplete }: Id
     if (!topic || loading) return
 
     setLoading(true)
+    setError(null)
     setStep(0)
-    
+
     // Fake progress for better UX
     const interval = setInterval(() => {
       setStep(prev => (prev < steps.length - 1 ? prev + 1 : prev))
@@ -48,12 +50,21 @@ export default function IdeaInput({ brandId, initialTopic = '', onComplete }: Id
       })
       const result = await res.json()
       if (result.error) throw new Error(result.error)
-      
+
       clearInterval(interval)
       onComplete(result)
     } catch (err) {
       console.error(err)
-      alert('Agent failed to flesh out the idea. Please try again.')
+      const msg = err instanceof Error ? err.message : String(err)
+      // Parse rate limit: extract retry time if present
+      const retryMatch = msg.match(/try again in (\d+m\d+s|\d+h\d+m|\d+\.\d+s)/i)
+      if (msg.includes('rate_limit_exceeded') || msg.includes('429')) {
+        setError(retryMatch
+          ? `Groq daily token limit reached. Try again in ${retryMatch[1]}.`
+          : 'Groq daily token limit reached. Try again in a few minutes.')
+      } else {
+        setError('Agent failed to flesh out the idea. Please try again.')
+      }
     } finally {
       setLoading(false)
       clearInterval(interval)
@@ -117,6 +128,13 @@ export default function IdeaInput({ brandId, initialTopic = '', onComplete }: Id
             </div>
           </div>
         </div>
+
+        {error && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <span className="shrink-0">⚠</span>
+            <span>{error}</span>
+          </div>
+        )}
 
         {loading && (
           <div className="flex flex-col items-center justify-center py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">

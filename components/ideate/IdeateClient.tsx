@@ -11,6 +11,7 @@ import type { FleshingResult, Idea } from '@/lib/agents/ideation-flesher'
 export default function IdeateClient({ brandId }: { brandId: string }) {
   const [result, setResult] = useState<FleshingResult | null>(null)
   const [brainstorming, setBrainstorming] = useState(false)
+  const [brainstormError, setBrainstormError] = useState<string | null>(null)
   const [suggestedIdeas, setSuggestedIdeas] = useState<Idea[] | null>(null)
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null)
 
@@ -20,6 +21,7 @@ export default function IdeateClient({ brandId }: { brandId: string }) {
 
   const handleBrainstorm = async () => {
     setBrainstorming(true)
+    setBrainstormError(null)
     setSuggestedIdeas(null)
     try {
       const res = await fetch('/api/agents/brainstorm', {
@@ -27,9 +29,15 @@ export default function IdeateClient({ brandId }: { brandId: string }) {
         body: JSON.stringify({ brandId })
       })
       const data = await res.json()
+      if (data.error) throw new Error(data.error)
       setSuggestedIdeas(data.ideas)
     } catch (error) {
-      console.error(error)
+      const msg = error instanceof Error ? error.message : String(error)
+      if (msg.includes('rate_limit_exceeded') || msg.includes('429')) {
+        setBrainstormError('Groq daily token limit reached. Try again in a few minutes.')
+      } else {
+        setBrainstormError('Agency failed to brainstorm. Please try again.')
+      }
     } finally {
       setBrainstorming(false)
     }
@@ -119,6 +127,9 @@ export default function IdeateClient({ brandId }: { brandId: string }) {
                     )}
                     {brainstorming ? 'Agent is brainstorming...' : 'I have no ideas (Ask the Agency)'}
                   </button>
+                  {brainstormError && (
+                    <p className="text-red-400 text-xs text-center">⚠ {brainstormError}</p>
+                  )}
                 </div>
               )}
             </div>
