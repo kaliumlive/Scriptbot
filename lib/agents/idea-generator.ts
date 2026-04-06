@@ -18,6 +18,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { generateWithGroq } from '@/lib/ai/groq'
 import { buildVoiceSystemPrompt } from '@/lib/brand/voice'
 import type { BrandVoiceProfile } from '@/lib/brand/voice'
+import { buildKnowledgeInjection, buildContentPillarsInjection } from '@/lib/brand/knowledge'
 import { parseLLMJson } from '@/lib/utils'
 
 interface GeneratedIdea {
@@ -34,7 +35,10 @@ function buildIdeaPrompt(
   brand: { name: string; platforms: string[] },
   voiceProfile: BrandVoiceProfile | null,
   recentConversations: string[],
-  existingTitles: string[]
+  existingTitles: string[],
+  contentPillars: string[],
+  offLimitsTopics: string,
+  examplePosts: string[]
 ): string {
   // Build creator identity context
   const identityLines: string[] = []
@@ -57,6 +61,9 @@ function buildIdeaPrompt(
     ? `\nCURRENT CONVERSATIONS in their space (use as inspiration for the creator's personal angle — do NOT just make content about the trend itself):\n${recentConversations.map(c => `- ${c}`).join('\n')}`
     : ''
 
+  const pillarsContext = buildContentPillarsInjection(contentPillars, offLimitsTopics, examplePosts)
+  const knowledgeContext = buildKnowledgeInjection(false)
+
   return `You are generating content ideas for a creator who wants to build FANS, not a student base.
 
 CREATOR: ${brand.name}
@@ -64,8 +71,14 @@ PLATFORMS: ${brand.platforms.join(', ')}
 
 CREATOR IDENTITY:
 ${identityLines.length >= 2 ? identityLines.join('\n') : `Niche creator building a personal brand. Generate ideas rooted in personal experience, strong opinions, and honest perspective — not educational content.`}
+${pillarsContext ? `\n${pillarsContext}` : ''}
 ${conversationsContext}
 ${avoidTitles}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTENT CRAFT RULES (apply to every idea):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${knowledgeContext}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 THE MOST IMPORTANT RULE — READ CAREFULLY:
@@ -131,7 +144,7 @@ export async function runIdeaGenerator(brandId?: string): Promise<{
 }> {
   const supabase = createAdminClient()
 
-  const q = supabase.from('brands').select('id, name, platforms')
+  const q = supabase.from('brands').select('id, name, platforms, content_pillars, off_limits_topics, example_posts')
   const { data: brands, error: brandsError } = brandId ? await q.eq('id', brandId) : await q
 
   if (brandsError || !brands?.length) {
@@ -198,6 +211,10 @@ export async function runIdeaGenerator(brandId?: string): Promise<{
         ? buildVoiceSystemPrompt(voiceProfile as BrandVoiceProfile)
         : undefined
 
+      const contentPillars = (brand.content_pillars as string[]) ?? []
+      const offLimitsTopics = (brand.off_limits_topics as string) ?? ''
+      const examplePosts = (brand.example_posts as string[]) ?? []
+
       const prompt = buildIdeaPrompt(
         {
           name: brand.name,
@@ -205,7 +222,10 @@ export async function runIdeaGenerator(brandId?: string): Promise<{
         },
         voiceProfile as BrandVoiceProfile | null,
         recentConversations,
-        existingTitles
+        existingTitles,
+        contentPillars,
+        offLimitsTopics,
+        examplePosts
       )
 
       const raw = await generateWithGroq(prompt, voiceSystemPrompt)

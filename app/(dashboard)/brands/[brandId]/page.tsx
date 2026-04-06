@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Mic, Zap } from 'lucide-react'
 import VoiceLearnerPanel from '@/components/brands/VoiceLearnerPanel'
+import ContentPillarsPanel from '@/components/brands/ContentPillarsPanel'
 
 export default async function BrandDetailPage({
   params,
@@ -14,7 +15,7 @@ export default async function BrandDetailPage({
   // Auth disabled — fetch brand by id only
   const { data: brand } = await supabase
     .from('brands')
-    .select('*, brand_voice_profiles(*)')
+    .select('*, brand_voice_profiles(*), content_pillars, off_limits_topics, example_posts')
     .eq('id', brandId)
     .single()
 
@@ -169,6 +170,13 @@ export default async function BrandDetailPage({
       )}
 
       <VoiceLearnerPanel brandId={brandId} hasStyleGuide={!!voice?.style_guide} />
+
+      <ContentPillarsPanel
+        brandId={brandId}
+        initialPillars={(brand.content_pillars as string[]) ?? []}
+        initialOffLimits={(brand.off_limits_topics as string) ?? ''}
+        initialExamplePosts={(brand.example_posts as string[]) ?? []}
+      />
     </div>
   )
 }

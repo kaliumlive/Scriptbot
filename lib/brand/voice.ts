@@ -34,7 +34,12 @@ export interface BrandVoiceProfile {
   last_updated?: string
 }
 
-export function buildVoiceSystemPrompt(voice: BrandVoiceProfile): string {
+export function buildVoiceSystemPrompt(
+  voice: BrandVoiceProfile,
+  options: { includeKnowledge?: boolean; includeCarouselKnowledge?: boolean } = {}
+): string {
+  const { includeKnowledge = true, includeCarouselKnowledge = false } = options
+
   const parts: string[] = [
     `You are writing content for a creator with the following voice profile:`,
     ``,
@@ -49,6 +54,15 @@ export function buildVoiceSystemPrompt(voice: BrandVoiceProfile): string {
   if (voice.style_guide) parts.push(`\nFULL STYLE GUIDE (from video transcriptions):\n${voice.style_guide}`)
 
   parts.push(`\nWRITE as this person. Do not add catchphrases. Do not perform enthusiasm. Do not add CTAs unless specifically asked. Short sentences. Drop technical terms naturally when there's no simpler word.`)
+
+  // Inject content craft knowledge from the value vault
+  if (includeKnowledge) {
+    const { buildKnowledgeInjection } = require('@/lib/brand/knowledge')
+    parts.push(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+    parts.push(`CONTENT CRAFT KNOWLEDGE (apply to everything you write):`)
+    parts.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+    parts.push(buildKnowledgeInjection(includeCarouselKnowledge))
+  }
 
   return parts.join('\n')
 }

@@ -172,7 +172,7 @@ export async function runContentWriter(brandId?: string): Promise<{
         .single()
 
       const systemPrompt = voiceProfile
-        ? buildVoiceSystemPrompt(voiceProfile as BrandVoiceProfile)
+        ? buildVoiceSystemPrompt(voiceProfile as BrandVoiceProfile, { includeKnowledge: true })
         : `Write natural, direct content for a music producer creator. Short sentences. Technical terms used naturally. No hype language. No "follow for more" energy.`
 
       for (const idea of ideas as ContentIdea[]) {

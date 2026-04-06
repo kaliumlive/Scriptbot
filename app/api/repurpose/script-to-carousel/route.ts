@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     .single()
 
   const systemPrompt = voiceProfile
-    ? buildVoiceSystemPrompt(voiceProfile as BrandVoiceProfile)
+    ? buildVoiceSystemPrompt(voiceProfile as BrandVoiceProfile, { includeKnowledge: true, includeCarouselKnowledge: true })
     : `You are a content strategist writing carousel slides for a creator in the ${brand.niche} niche.`
 
   const prompt = `
