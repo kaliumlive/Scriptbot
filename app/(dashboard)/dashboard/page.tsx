@@ -226,7 +226,7 @@ export default async function DashboardPage() {
                     </span>
                   )}
                   <span className="text-[11px] text-zinc-800 tabular-nums shrink-0">
-                    {new Date(log.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(log.started_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               ))}

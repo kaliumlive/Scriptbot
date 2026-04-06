@@ -89,7 +89,7 @@ export default async function CalendarPage() {
               </div>
 
               <span className="text-xs text-zinc-700 tabular-nums shrink-0">
-                {new Date(post.published_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                {new Date(post.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
 
               {post.platform_post_url && (
