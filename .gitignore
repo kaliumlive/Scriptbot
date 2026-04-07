@@ -52,4 +52,17 @@ __pycache__/
 _agents/
 _agent/
 
+# ruflo / claude-flow runtime data (logs, sessions, db)
+.claude-flow/data/
+.claude-flow/logs/
+.claude-flow/sessions/
+.claude-flow/*.db
+.claude-flow/daemon.pid
+.claude-flow/metrics/
+.claude-flow/security/
+.swarm/
+agentdb.rvf
+agentdb.rvf.lock
+ruvector.db
+
 .vercel
