@@ -61,7 +61,7 @@ function getStoryStructure(id: string) {
   return STORY_STRUCTURES.find(s => s.id === id) ?? STORY_STRUCTURES[0]
 }
 
-function buildWritingPrompt(idea: ContentIdea, hookTemplate: string, voiceProfile: BrandVoiceProfile | null): string {
+function buildWritingPrompt(idea: ContentIdea, hookTemplate: string, voiceProfile: BrandVoiceProfile | null, trendConversations: string[] = []): string {
   const structure = getStoryStructure(idea.story_structure_id)
   const platforms = idea.target_platforms?.length ? idea.target_platforms : ['instagram', 'tiktok']
   const isShortForm = ['short_video', 'reel'].includes(idea.content_type)
@@ -98,6 +98,7 @@ PLATFORMS: ${platforms.join(', ')}
 ${voiceInstructions}
 ${structureGuide}
 ${hookGuide}
+${trendConversations.length ? `\nCURRENT CONVERSATIONS in the creator's space (use as cultural context for the script tone and references — do NOT just repeat the trend):\n${trendConversations.map(c => `- ${c}`).join('\n')}` : ''}
 
 Return ONLY this JSON, no markdown fences:
 {
@@ -171,6 +172,37 @@ export async function runContentWriter(brandId?: string): Promise<{
         .eq('brand_id', brand.id)
         .single()
 
+      // Fetch recent trend conversations for cultural context
+      const { data: recentTrends } = await supabase
+        .from('trend_reports')
+        .select('trends')
+        .eq('brand_id', brand.id)
+        .order('report_date', { ascending: false })
+        .limit(3)
+
+      const trendConversations: string[] = []
+      for (const report of recentTrends ?? []) {
+        const trends = report.trends as Array<{
+          conversation?: string
+          creator_angle?: string
+          content_opportunity?: string
+          topic?: string
+          angle?: string
+        }>
+        if (!Array.isArray(trends)) continue
+        for (const t of trends.slice(0, 2)) {
+          if (t.conversation) {
+            trendConversations.push(t.content_opportunity ?? t.creator_angle ?? t.conversation)
+          } else if (t.topic) {
+            const topic = t.topic.toLowerCase()
+            const isTutorial = ['how to', 'tips', 'guide', 'beginner', 'best plugins', 'tools', 'gear', 'setup', 'improve your'].some(s => topic.includes(s))
+            if (!isTutorial) {
+              trendConversations.push(t.angle ?? t.topic)
+            }
+          }
+        }
+      }
+
       const systemPrompt = voiceProfile
         ? buildVoiceSystemPrompt(voiceProfile as BrandVoiceProfile, { includeKnowledge: true })
         : `Write natural, direct content for a music producer creator. Short sentences. Technical terms used naturally. No hype language. No "follow for more" energy.`
@@ -178,7 +210,7 @@ export async function runContentWriter(brandId?: string): Promise<{
       for (const idea of ideas as ContentIdea[]) {
         try {
           const hookTemplate = pickHookTemplate()
-          const prompt = buildWritingPrompt(idea, hookTemplate, voiceProfile as BrandVoiceProfile | null)
+          const prompt = buildWritingPrompt(idea, hookTemplate, voiceProfile as BrandVoiceProfile | null, trendConversations)
 
           const raw = await generateWithGroq(prompt, systemPrompt)
 

@@ -11,7 +11,7 @@
  * GitHub Actions trigger: every 4 hours
  */
 
-import { generateWithGroq } from '@/lib/ai/groq'
+import { generateWithGroq, MODEL } from '@/lib/ai/groq'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { parseLLMJson } from '@/lib/utils'
 import type { BrandVoiceProfile } from '@/lib/brand/voice'
@@ -109,7 +109,7 @@ Return ONLY a JSON array:
   }
 ]`
 
-        const rawText = await generateWithGroq(prompt)
+        const rawText = await generateWithGroq(prompt, undefined, MODEL.FAST)
         const trends = parseLLMJson<TrendItem[]>(rawText)
 
         if (!Array.isArray(trends) || trends.length === 0) {
