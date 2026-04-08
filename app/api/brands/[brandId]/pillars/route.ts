@@ -1,6 +1,8 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest } from 'next/server'
+import { validateAgentRequest, agentUnauthorized } from '@/lib/utils/agent-guard'
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 interface PillarsPayload {
@@ -9,10 +11,19 @@ interface PillarsPayload {
   example_posts?: string[]
 }
 
+async function checkAuth(request: NextRequest): Promise<boolean> {
+  if (validateAgentRequest(request)) return true
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  return !!user
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ brandId: string }> }
 ) {
+  if (!(await checkAuth(request))) return agentUnauthorized()
+
   const { brandId } = await params
   const body = (await request.json().catch(() => ({}))) as PillarsPayload
 
@@ -58,9 +69,11 @@ export async function PATCH(
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ brandId: string }> }
 ) {
+  if (!(await checkAuth(request))) return agentUnauthorized()
+
   const { brandId } = await params
   const supabase = createAdminClient()
 

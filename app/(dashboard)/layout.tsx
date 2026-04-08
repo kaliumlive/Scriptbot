@@ -1,7 +1,8 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, Component } from 'react'
+import type { ReactNode } from 'react'
 import {
   LayoutDashboard,
   Kanban,
@@ -28,6 +29,35 @@ const navItems = [
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import AgentSidebar from '@/components/dashboard/AgentSidebar'
+
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('Dashboard error:', error)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 text-zinc-400 text-sm">
+          Something went wrong. Refresh the page.
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 function SuspendedAgentSidebar() {
   const searchParams = useSearchParams()
@@ -106,7 +136,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       </aside>
 
-      <main className="flex-1 overflow-auto min-w-0">{children}</main>
+      <main className="flex-1 overflow-auto min-w-0">
+        <ErrorBoundary>{children}</ErrorBoundary>
+      </main>
 
       {/* Global Agency Sidebar */}
       <Suspense fallback={null}>

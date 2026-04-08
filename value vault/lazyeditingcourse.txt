@@ -1,0 +1,27 @@
+# Lazy Editing Masterclass - Lazy Lakshay
+
+This document summarizes the core principles and roadmap from the "Editing Masterclass" by Lazy Lakshay.
+
+## 1. The Editing Roadmap
+- **Toddler Level (5-7 Days)**: Basic cleanup, removing dead air, simple cuts, static images.
+- **Beginner Level (15-30 Days)**: Storytelling context, hiding jump cuts with B-roll, basic text overlays, background music layering.
+- **Intermediate Level (3-9 Months)**: **Audience Psychology**. Hook in first 5-7 seconds, motion graphics for retention, color grading for mood.
+- **Pro Level (1 Year+)**: 3D visual storytelling, camera animations (keyframing), consistent branding, "Taste" development.
+
+## 2. Cinematic & Engagement Principles
+- **The Hook (5-7 Seconds)**: Critical window. High-intensity visuals and fast-paced editing.
+- **Sound Resets**: Sound is 50% of the video. Use "Whoosh", "Risers", "Base Drops" as visual resets every few seconds.
+- **Storytelling over Packaging**: Narrative structure and emotion are more important than fancy graphics.
+- **Invisible Transitions**:
+    - **Hiding Jump Cuts**: B-roll or digital zooms.
+    - **Match Cuts**: Visual connection through overlapping shapes/movements.
+    - **Camera Animations**: Digital camera movement via keyframing.
+- **Visual Pacing**: Rhythm dictated by narrative flow and audience psychology.
+
+## 3. Key Roles in Modern Editing
+The most in-demand role is the **Mixed Media Editor**, combining story, motion, audio, color, and VFX.
+
+## 4. AI for Efficiency
+- Use AI (LLMs) for brainstorming/strategy.
+- Use AI generation for B-roll and visual assets to work 10-20x faster.
+- Maintain **Artistic Taste** as the primary competitive advantage.

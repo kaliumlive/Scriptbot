@@ -1,0 +1,28 @@
+What are good ideas in YOUR niche?
+
+We can of course pull some good ideas from top creators and tools like chat GPT…
+
+But to really know what a good idea for YOU is, we need to look into your TARGET AUDIENCE and put ourselves in their position - anticipate what they want to hear
+
+So, go ahead and put this prompt into Chat GPT
+
+<aside>
+<img src="/icons/robot_blue.svg" alt="/icons/robot_blue.svg" width="40px" />
+
+> **“I am doing market research on my social media target audience and I am a ___**
+> 
+
+> **give me 20 common pain points in my niche**
+> 
+
+> **give me 20 common questions in my niche**
+> 
+
+> **give me 20 common misconceptions in my niche**
+> 
+
+> **Put this all into a chart”**
+> 
+</aside>
+
+Every all 60 answers AI gives you can be a content idea and also help frame the value that you give because you will know what your audience really wants to hear

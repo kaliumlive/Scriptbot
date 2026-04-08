@@ -1,7 +1,10 @@
 import { NextRequest } from 'next/server'
+import { validateAgentRequest, agentUnauthorized } from '@/lib/utils/agent-guard'
 import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
+    if (!validateAgentRequest(request)) return agentUnauthorized()
+
     const supabase = await createClient()
 
     const { searchParams } = new URL(request.url)

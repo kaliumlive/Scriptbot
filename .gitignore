@@ -60,9 +60,16 @@ _agent/
 .claude-flow/daemon.pid
 .claude-flow/metrics/
 .claude-flow/security/
+.claude-flow/agents/
+.claude-flow/agents.json
+.claude-flow/hive-mind/
+.claude-flow/swarm/
 .swarm/
 agentdb.rvf
 agentdb.rvf.lock
 ruvector.db
+
+# value vault — exclude sensitive files
+value vault/Anthropicapi.txt
 
 .vercel

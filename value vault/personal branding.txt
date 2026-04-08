@@ -1,0 +1,46 @@
+Content/Brand Structure
+
+What is content structure?
+
+it’s the underlying strategy that goes into making your personal brand unique, organized, and overall successful
+
+There’s a few things that go into a content structure
+
+I put it all into a template so you can make a copy to have all this info stored somewhere + are able to break down your strategy 
+
+But before you dive into that you need to look more broad at your brand structure 
+
+You need to follow a guideline for your brand, your brand’s presence on social media reflects its personality. Without a clear *guideline*, your brand risks blending in with the crowd, looking just like everyone else—*mediocre, and that's a path to obscurity*.
+
+### Pillars of branding for content
+
+1. Color theory 
+- It is essential in content creation and branding because it influences how your audience perceives and connects with your brand. Colors evoke emotions, set moods, and convey messages, often subconsciously. By using the right color palette, you can strengthen your brand identity, create a cohesive look across all platforms, and enhance recognition. For instance, blue often conveys trust and professionalism, while red can invoke excitement or urgency. Understanding and applying color theory allows brands to align their visual identity with their values, attract the right audience, and create a more memorable, impactful experience.
+
+1. 2. Typography 
+
+Choosing the right fonts is crucial in shaping your brand’s identity. Here’s how to approach it:
+
+- **Main Font for Captions:** This font should be easy to read, clean, and ideally recognizable (think Helvetica or Futura).
+- **Secondary Font for B-roll and Animations:** This should contrast with your main font and align with your content’s theme. For instance, if you're sharing historical content, a vintage font like Alex Brush or Daniel works well. For sports-related content, choose a font that conveys energy and intensity, such as Hanson Bold or Anton.
+- **Optional Font for Headlines:** While not essential, if you choose to use a third font, it should complement your secondary font but be distinct enough to create visual interest without overwhelming the overall aesthetic.
+
+1. Pick a theme/style
+
+The theme of your video is what defines your editing style and can make all the difference in its impact. Choose a few of the following themes and incorporate them consistently to create a unique editing signature:
+
+- Grain
+- Glow
+- Gradient
+- 3D Animation
+- 2D Animation
+- Text-Based B-Roll
+- One-Color-Themed Icons
+- Low/Normal/Fast Frame Rates (Posterize Time)
+- Motion Blur
+- Illustrations
+- Movie Scene B-Roll
+- Imaginary Backgrounds
+- Custom Animations (Trim Paths, Shapes, 3D Camera)
+
+By focusing on a few key elements and adding your personal touch, you can establish a distinctive and cohesive editing style.

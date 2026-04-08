@@ -38,10 +38,14 @@ export default function AgentSidebar({ brandId }: { brandId: string }) {
     // Fetch logs periodically
     useEffect(() => {
         const fetchLogs = async () => {
-            const res = await fetch(`/api/run-agent/logs?brandId=${brandId}&limit=5`)
-            if (res.ok) {
-                const data = await res.json()
-                setLogs(data.logs || [])
+            try {
+                const res = await fetch(`/api/run-agent/logs?brandId=${brandId}&limit=5`)
+                if (res.ok) {
+                    const data = await res.json()
+                    setLogs(data.logs || [])
+                }
+            } catch (error) {
+                console.error('Failed to fetch agent logs:', error)
             }
         }
         fetchLogs()

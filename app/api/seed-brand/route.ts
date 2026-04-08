@@ -6,11 +6,14 @@ export const dynamic = 'force-dynamic'
  */
 
 import { NextRequest } from 'next/server'
+import { validateAgentRequest, agentUnauthorized } from '@/lib/utils/agent-guard'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
+  if (!validateAgentRequest(request)) return agentUnauthorized()
+
   const supabase = createAdminClient()
-  // Auth disabled — check if any brand exists already
+  // Check if any brand exists already
   const { data: existing } = await supabase
     .from('brands')
     .select('id')

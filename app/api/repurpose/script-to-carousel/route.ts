@@ -1,6 +1,8 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest } from 'next/server'
+import { validateAgentRequest, agentUnauthorized } from '@/lib/utils/agent-guard'
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateWithGroq } from '@/lib/ai/groq'
 import { buildVoiceSystemPrompt } from '@/lib/brand/voice'
@@ -12,6 +14,12 @@ interface Slide {
 }
 
 export async function POST(request: NextRequest) {
+  if (!validateAgentRequest(request)) {
+    const supabaseAuth = await createClient()
+    const { data: { user } } = await supabaseAuth.auth.getUser()
+    if (!user) return agentUnauthorized()
+  }
+
   const body = await request.json().catch(() => ({}))
   const { brandId, script } = body as { brandId?: string; script?: string }
 
